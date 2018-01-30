@@ -225,10 +225,12 @@ namespace flu
 
         auto seed_vec = flu::data::separate_into_risk_groups( 
                 seeding_infectious, risk_proportions  );
+        Eigen::VectorXd initial_resistant_vec = Eigen::VectorXd::Zero(seed_vec.cols());
 
         return infectionODE(
             Npop,  
             seed_vec, 
+            initial_resistant_vec,
             tlatent, tinfectious, 
             s_profile, 
             contact_regular, transmissibility,
@@ -240,6 +242,7 @@ namespace flu
     cases_t infectionODE(
             const Eigen::VectorXd &Npop,  
             const Eigen::VectorXd &seed_vec, 
+            const Eigen::VectorXd &initial_resistant_vec, 
             const double tlatent, const double tinfectious, 
             const Eigen::VectorXd &s_profile, 
             const Eigen::MatrixXd &contact_regular, 
@@ -281,10 +284,14 @@ namespace flu
             densities[ode_id(nag,LOW,E1,i)]=seed_vec[i];
             densities[ode_id(nag,HIGH,E1,i)]=seed_vec[i+nag];
             densities[ode_id(nag,PREG,E1,i)]=seed_vec[i+2*nag];
+          
+            densities[ode_id(nag,LOW,R,i)]=initial_resistant_vec[i];
+            densities[ode_id(nag,HIGH,R,i)]=initial_resistant_vec[i+nag];
+            densities[ode_id(nag,PREG,R,i)]=initial_resistant_vec[i+2*nag];
 
-            densities[ode_id(nag,LOW,S,i)]=Npop[i]-densities[ode_id(nag,LOW,E1,i)];
-            densities[ode_id(nag,HIGH,S,i)]=Npop[i+nag]-densities[ode_id(nag,HIGH,E1,i)];
-            densities[ode_id(nag,PREG,S,i)]=Npop[i+2*nag]-densities[ode_id(nag,PREG,E1,i)];
+            densities[ode_id(nag,LOW,S,i)]=Npop[i]-densities[ode_id(nag,LOW,E1,i)]-densities[ode_id(nag,LOW,R,i)];
+            densities[ode_id(nag,HIGH,S,i)]=Npop[i+nag]-densities[ode_id(nag,HIGH,E1,i)]-densities[ode_id(nag,HIGH,R,i)];
+            densities[ode_id(nag,PREG,S,i)]=Npop[i+2*nag]-densities[ode_id(nag,PREG,E1,i)]-densities[ode_id(nag,PREG,R,i)];
         }
 
         auto current_time = times[0];
@@ -372,7 +379,8 @@ namespace flu
 
     cases_t infectionODE(
             const Eigen::VectorXd &Npop,  
-            const Eigen::VectorXd &seed_vec, 
+            const Eigen::VectorXd &seed_vec,
+            const Eigen::VectorXd &resistant_vec,
             const double tlatent, const double tinfectious, 
             const Eigen::VectorXd &s_profile, 
             const Eigen::MatrixXd &contact_regular, double transmissibility,
@@ -402,7 +410,7 @@ namespace flu
             next_time += bt::hours(minimal_resolution);
             times.push_back( next_time );
         }
-        return infectionODE( Npop, seed_vec, tlatent, tinfectious,
+        return infectionODE( Npop, seed_vec, resistant_vec, tlatent, tinfectious,
                 s_profile, contact_regular,
                 transmissibility, vaccine_programme,
                 times );
