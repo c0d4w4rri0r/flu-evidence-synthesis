@@ -54,6 +54,7 @@ namespace flu
     cases_t infectionODE(
             const Eigen::VectorXd &pop_vec, 
             const Eigen::VectorXd &initial_infected, 
+            const Eigen::VectorXd &resistant_vec,
             const double, const double,  
             const Eigen::VectorXd &, 
             const Eigen::MatrixXd &contact_regular, double, 
