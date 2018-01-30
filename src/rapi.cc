@@ -198,6 +198,7 @@ Rcpp::DataFrame runSEIRModel(
 Rcpp::DataFrame infectionODEs(
         Rcpp::NumericVector population,
         Eigen::VectorXd initial_infected, 
+        Eigen::VectorXd initial_resistant,
         flu::vaccine::vaccine_t vaccine_calendar,
         Eigen::MatrixXd contact_matrix,
         Eigen::VectorXd susceptibility, 
@@ -220,16 +221,20 @@ Rcpp::DataFrame infectionODEs(
         ::Rf_error("Population groups and contact_matrix size mismatch");
     else if (popv.size() != initial_infected.size())
         ::Rf_error("Population vector and initial_infected should have the same number of entries");
+    else if (popv.size() != initial_resistant.size())
+        ::Rf_error("Population vector and initial_resistant should have the same number of entries");
 
     auto dim = popv.size();
     if (contact_matrix.cols() != popv.size()/3)
     {
         popv.conservativeResize(contact_matrix.cols()*3);
         initial_infected.conservativeResize(contact_matrix.cols()*3);
+        initial_resistant.conservativeResize(contact_matrix.cols()*3);
         for( size_t i = dim; i<popv.size(); ++i)
         {
             popv[i] = 0;
             initial_infected[i] = 0;
+            initial_resistant[i] = 0;
         }
     }
 
@@ -240,7 +245,7 @@ Rcpp::DataFrame infectionODEs(
     }
 
     auto result = flu::infectionODE(
-        popv, initial_infected, 
+        popv, initial_infected, initial_resistant, 
         infection_delays[0], infection_delays[1],
         susceptibility, contact_matrix, transmissibility,
         vaccine_calendar, datesC );
