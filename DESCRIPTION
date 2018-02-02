@@ -1,10 +1,10 @@
-Package: fluEvidenceSynthesis
+Package: fluEvidenceSynthesisCW
 Type: Package
 Title: Flu Evidence Synthesis: Analysing Effectiveness of Vaccine Strategies
-Version: 1.0.0
-Date: 2017-11-17
-Author: Marc Baguelin, Edwin van Leeuwen
-Maintainer: Edwin van Leeuwen <edwinvanl@gmail.com>
+Version: 2.0.0
+Date: 2018-02-01
+Author: Marc Baguelin, Edwin van Leeuwen and modified by CW
+Maintainer: CW to the extent that I can be bothered
 Description: Package to evaluate the efficacy of different vaccination
     programmes. The method uses provided data on Influenze Like Illness counts,
     lab results on actual Influenza occurrence classified by strain and the current
