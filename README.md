@@ -24,14 +24,14 @@ Then use devtools to install fluEvidenceSynthesis by using the following command
 
 ```{r}
 library(devtools)
-install_github("MJomaba/flu-evidence-synthesis", dependencies = TRUE)
+install_github("c0d4w4rri0r/flu-evidence-synthesis", dependencies = TRUE)
 ```
 
 The above will install the package without the vignettes. To install them as well you first need to install [odin](https://github.com/mrc-ide/odin#installation) following [these instructions](https://github.com/mrc-ide/odin#installation), because one of the vignettes depends on that package. After installing odin you can install the package and its vignettes as follows.
 
 ```{r}
 library(devtools)
-install_github("MJomaba/flu-evidence-synthesis", dependencies = TRUE, build_vignettes = TRUE)
+install_github("c0d4w4rri0r/flu-evidence-synthesis", dependencies = TRUE, build_vignettes = TRUE)
 ```
 
 
@@ -50,3 +50,5 @@ vignette("inference",package="fluEvidenceSynthesis")
 ```
 
 There is also a presentation available with some more details on the package [here](http://blackedder.github.io/flu-evidence-synthesis/RCoursePackage.html).
+
+PS, CW: ok so I needed to modify this package so epiademiologically it could model a population where some people start off with total immunity. I'm not planing or intending that this should become a huge forked project it's just a convenience ... but happy to talk about adding these fetures to the package creators if needed. I've renamed the package so it can be installed along side the origional.
