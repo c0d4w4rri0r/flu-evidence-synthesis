@@ -134,20 +134,21 @@ BEGIN_RCPP
 END_RCPP
 }
 // infectionODEs
-Rcpp::DataFrame infectionODEs(Rcpp::NumericVector population, Eigen::VectorXd initial_infected, flu::vaccine::vaccine_t vaccine_calendar, Eigen::MatrixXd contact_matrix, Eigen::VectorXd susceptibility, double transmissibility, Eigen::VectorXd infection_delays, Rcpp::DateVector dates);
-RcppExport SEXP _fluEvidenceSynthesis_infectionODEs(SEXP populationSEXP, SEXP initial_infectedSEXP, SEXP vaccine_calendarSEXP, SEXP contact_matrixSEXP, SEXP susceptibilitySEXP, SEXP transmissibilitySEXP, SEXP infection_delaysSEXP, SEXP datesSEXP) {
+Rcpp::DataFrame infectionODEs(Rcpp::NumericVector population, Eigen::VectorXd initial_infected, Eigen::VectorXd initial_resistant, flu::vaccine::vaccine_t vaccine_calendar, Eigen::MatrixXd contact_matrix, Eigen::VectorXd susceptibility, double transmissibility, Eigen::VectorXd infection_delays, Rcpp::DateVector dates);
+RcppExport SEXP _fluEvidenceSynthesis_infectionODEs(SEXP populationSEXP, SEXP initial_infectedSEXP, SEXP initial_resistantSEXP, SEXP vaccine_calendarSEXP, SEXP contact_matrixSEXP, SEXP susceptibilitySEXP, SEXP transmissibilitySEXP, SEXP infection_delaysSEXP, SEXP datesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type population(populationSEXP);
     Rcpp::traits::input_parameter< Eigen::VectorXd >::type initial_infected(initial_infectedSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type initial_resistant(initial_resistantSEXP);
     Rcpp::traits::input_parameter< flu::vaccine::vaccine_t >::type vaccine_calendar(vaccine_calendarSEXP);
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type contact_matrix(contact_matrixSEXP);
     Rcpp::traits::input_parameter< Eigen::VectorXd >::type susceptibility(susceptibilitySEXP);
     Rcpp::traits::input_parameter< double >::type transmissibility(transmissibilitySEXP);
     Rcpp::traits::input_parameter< Eigen::VectorXd >::type infection_delays(infection_delaysSEXP);
     Rcpp::traits::input_parameter< Rcpp::DateVector >::type dates(datesSEXP);
-    rcpp_result_gen = Rcpp::wrap(infectionODEs(population, initial_infected, vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays, dates));
+    rcpp_result_gen = Rcpp::wrap(infectionODEs(population, initial_infected, initial_resistant, vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays, dates));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -355,7 +356,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_fluEvidenceSynthesis_updateCovariance", (DL_FUNC) &_fluEvidenceSynthesis_updateCovariance, 4},
     {"_fluEvidenceSynthesis_getTimeFromWeekYear", (DL_FUNC) &_fluEvidenceSynthesis_getTimeFromWeekYear, 2},
     {"_fluEvidenceSynthesis_runSEIRModel", (DL_FUNC) &_fluEvidenceSynthesis_runSEIRModel, 8},
-    {"_fluEvidenceSynthesis_infectionODEs", (DL_FUNC) &_fluEvidenceSynthesis_infectionODEs, 8},
+    {"_fluEvidenceSynthesis_infectionODEs", (DL_FUNC) &_fluEvidenceSynthesis_infectionODEs, 9},
     {"_fluEvidenceSynthesis_log_likelihood", (DL_FUNC) &_fluEvidenceSynthesis_log_likelihood, 8},
     {"_fluEvidenceSynthesis_total_log_likelihood", (DL_FUNC) &_fluEvidenceSynthesis_total_log_likelihood, 9},
     {"_fluEvidenceSynthesis_runPredatorPrey", (DL_FUNC) &_fluEvidenceSynthesis_runPredatorPrey, 2},
