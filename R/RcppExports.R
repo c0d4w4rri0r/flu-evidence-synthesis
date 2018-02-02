@@ -7,7 +7,7 @@
 #' @param ili The number of Influenza-like illness cases per week
 #' @param mon_pop The number of people monitored for ili
 #' @param n_pos The number of positive samples for the given strain (per week)
-#' @param n_samples The total number of samples tested 
+#' @param n_samples The total number of samples tested
 #' @param vaccine_calendar A vaccine calendar valid for that year
 #' @param polymod_data Contact data for different age groups
 #' @param initial Vector with starting parameter values
@@ -19,7 +19,7 @@
 #' @param nburn Number of iterations of burn in
 #' @param nbatch Number of batches to run (number of samples to return)
 #' @param blen Length of each batch
-#' 
+#'
 #' @return Returns a list with the accepted samples and the corresponding llikelihood values and a matrix (contact.ids) containing the ids (row number) of the contacts data used to build the contact matrix.
 #'
 .inference_cpp <- function(demography, age_group_limits, ili, mon_pop, n_pos, n_samples, vaccine_calendar, polymod_data, initial, mapping, risk_ratios, epsilon_index, psi_index, transmissibility_index, susceptibility_index, initial_infected_index, lprior, pass_prior, no_age_groups, no_risk_groups, uk_prior, nburn = 0L, nbatch = 1000L, blen = 1L) {
@@ -45,14 +45,14 @@ dmultinom.cpp <- function(x, size, prob, use_log = FALSE) {
 #' @param ili The number of Influenza-like illness cases per week
 #' @param mon_pop The number of people monitored for ili
 #' @param n_pos The number of positive samples per strain (per week)
-#' @param n_samples The total number of samples tested 
+#' @param n_samples The total number of samples tested
 #' @param vaccine_calendar Vaccine calendars per strain valid for that year
 #' @param polymod_data Contact data for different age groups
 #' @param initial Vector with starting parameter values
 #' @param nburn Number of iterations of burn in
 #' @param nbatch Number of batches to run (number of samples to return)
 #' @param blen Length of each batch
-#' 
+#'
 #' @return Returns a list with the accepted samples and the corresponding llikelihood values and a matrix (contact.ids) containing the ids (row number) of the contacts data used to build the contact matrix.
 #'
 inference_multistrains <- function(demography, ili, mon_pop, n_pos, n_samples, vaccine_calendar, polymod_data, initial, nburn = 0L, nbatch = 1000L, blen = 1L) {
@@ -121,8 +121,8 @@ getTimeFromWeekYear <- function(week, year) {
 #' @param dates Dates to return values for.
 #' @return A data frame with number of new cases after each interval during the year
 #'
-infectionODEs.cpp <- function(population, initial_infected, vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays, dates) {
-    .Call('_fluEvidenceSynthesis_infectionODEs', PACKAGE = 'fluEvidenceSynthesis', population, initial_infected, vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays, dates)
+infectionODEs.cpp <- function(population, initial_infected, initial_resistant, vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays, dates) {
+    .Call('_fluEvidenceSynthesis_infectionODEs', PACKAGE = 'fluEvidenceSynthesis', population, initial_infected, initial_resistant, vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays, dates)
 }
 
 #' Returns log likelihood of the predicted number of cases given the data for that week
@@ -336,4 +336,3 @@ as_transmission_rate <- function(R0, contact_matrix, age_groups, duration = 1.8)
 vaccinationScenario <- function(age_sizes, vaccine_calendar, polymod_data, contact_ids, parameters) {
     .Call('_fluEvidenceSynthesis_vaccinationScenario', PACKAGE = 'fluEvidenceSynthesis', age_sizes, vaccine_calendar, polymod_data, contact_ids, parameters)
 }
-
