@@ -1,25 +1,25 @@
-\name{fluEvidenceSynthesis-package}
-\alias{fluEvidenceSynthesis-package}
-\alias{fluEvidenceSynthesis}
+\name{fluEvidenceSynthesisCW-package}
+\alias{fluEvidenceSynthesisCW-package}
+\alias{fluEvidenceSynthesisCW}
 \docType{package}
 \title{
-\packageTitle{fluEvidenceSynthesis}
+\packageTitle{fluEvidenceSynthesisCW}
 }
 \description{
-\packageDescription{fluEvidenceSynthesis}
+\packageDescription{fluEvidenceSynthesisCW}
 }
 \details{
 
 The DESCRIPTION file:
-\packageDESCRIPTION{fluEvidenceSynthesis}
-\packageIndices{fluEvidenceSynthesis}
+\packageDESCRIPTION{fluEvidenceSynthesisCW}
+\packageIndices{fluEvidenceSynthesisCW}
 %~~ An overview of how to use the package, including the most important ~~
 %~~ functions ~~
 }
 \author{
-\packageAuthor{fluEvidenceSynthesis}
+\packageAuthor{fluEvidenceSynthesisCW}
 
-Maintainer: \packageMaintainer{fluEvidenceSynthesis}
+Maintainer: \packageMaintainer{fluEvidenceSynthesisCW}
 }
 \references{
 Baguelin, Marc, Stefan Flasche, Anton Camacho, Nikolaos Demiris, Elizabeth Miller, and W. John Edmunds. \emph{Assessing Optimal Target Populations for Influenza Vaccination Programmes: An Evidence Synthesis and Modelling Study}. PLoS Med 10, no. 10 (8 October 2013): e1001527. doi:10.1371/journal.pmed.1001527.
