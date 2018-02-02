@@ -25,7 +25,7 @@ using namespace flu;
 //' @param ili The number of Influenza-like illness cases per week
 //' @param mon_pop The number of people monitored for ili
 //' @param n_pos The number of positive samples for the given strain (per week)
-//' @param n_samples The total number of samples tested 
+//' @param n_samples The total number of samples tested
 //' @param vaccine_calendar A vaccine calendar valid for that year
 //' @param polymod_data Contact data for different age groups
 //' @param initial Vector with starting parameter values
@@ -37,14 +37,14 @@ using namespace flu;
 //' @param nburn Number of iterations of burn in
 //' @param nbatch Number of batches to run (number of samples to return)
 //' @param blen Length of each batch
-//' 
+//'
 //' @return Returns a list with the accepted samples and the corresponding llikelihood values and a matrix (contact.ids) containing the ids (row number) of the contacts data used to build the contact matrix.
 //'
 // [[Rcpp::export(name=".inference_cpp")]]
 mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
         std::vector<size_t> age_group_limits,
-        Eigen::MatrixXi ili, Eigen::MatrixXi mon_pop, 
-        Eigen::MatrixXi n_pos, Eigen::MatrixXi n_samples, 
+        Eigen::MatrixXi ili, Eigen::MatrixXi mon_pop,
+        Eigen::MatrixXi n_pos, Eigen::MatrixXi n_samples,
         flu::vaccine::vaccine_t vaccine_calendar,
         Eigen::MatrixXi polymod_data,
         Eigen::VectorXd initial,
@@ -79,7 +79,7 @@ mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
     age_data.age_group_sizes = flu::data::group_age_data( demography,
             age_group_limits );
 
-    auto pop_vec = flu::data::stratify_by_risk( 
+    auto pop_vec = flu::data::stratify_by_risk(
             age_data.age_group_sizes, risk_ratios, no_risk_groups);
 
     /*pop RCGP*/
@@ -87,7 +87,7 @@ mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
     Eigen::VectorXd pop_RCGP = Eigen::VectorXd::Zero(ili.cols());
     for (int i = 0; i < mapping.rows(); ++i) {
       // to_j = weight*from_i
-      pop_RCGP((size_t) mapping(i,1)) += mapping(i,2) * pop_vec((size_t) mapping(i,0)); 
+      pop_RCGP((size_t) mapping(i,1)) += mapping(i,2) * pop_vec((size_t) mapping(i,0));
     }
 
 
@@ -133,33 +133,33 @@ mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
     } else if (no_risk_groups > 3)
         ::Rf_error("Maximum of three risk groups supported");
 
-    auto polymod = flu::contacts::table_to_contacts( polymod_data, 
-            age_group_limits ); 
+    auto polymod = flu::contacts::table_to_contacts( polymod_data,
+            age_group_limits );
 
-    auto curr_c = contacts::shuffle_by_id( polymod, 
+    auto curr_c = contacts::shuffle_by_id( polymod,
             contact_ids );
 
-    auto current_contact_regular = 
+    auto current_contact_regular =
         contacts::to_symmetric_matrix( curr_c, age_data );
 
     auto time_latent = 0.8;
     auto time_infectious = 1.8;
-        
-    Eigen::VectorXd curr_init_resist = Eigen::VectorXd::Zero(curr_init_inf.col());
 
-    auto result = infectionODE(pop_vec, 
+    Eigen::VectorXd curr_init_resist = Eigen::VectorXd::Zero(curr_init_inf.size());
+
+    auto result = infectionODE(pop_vec,
             curr_init_inf,
             curr_init_resist,
-            time_latent, time_infectious, 
+            time_latent, time_infectious,
             pars_to_susceptibility(curr_parameters),
-            current_contact_regular, curr_parameters[transmissibility_index], 
+            current_contact_regular, curr_parameters[transmissibility_index],
             vaccine_calendar, 7*24 );
     /*curr_psi=0.00001;*/
     auto d_app = 3;
     auto curr_llikelihood = log_likelihood_hyper_poisson(
             pars_to_epsilon(curr_parameters),
-            curr_parameters[psi_index], 
-            days_to_weeks_5AG(result, mapping, pop_RCGP.size()), 
+            curr_parameters[psi_index],
+            days_to_weeks_5AG(result, mapping, pop_RCGP.size()),
             ili, mon_pop, n_pos, n_samples, pop_RCGP, d_app);
 
     auto proposal_state = proposal::initialize( curr_parameters.size() );
@@ -171,7 +171,7 @@ mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
         return lPrior;
     };
 
-    auto log_prior_ratio_f = [pass_prior, &Rlprior, &prop_prior, &curr_prior, uk_prior, &epsilon_index, psi_index, transmissibility_index, &susceptibility_index, 
+    auto log_prior_ratio_f = [pass_prior, &Rlprior, &prop_prior, &curr_prior, uk_prior, &epsilon_index, psi_index, transmissibility_index, &susceptibility_index,
          initial_infected_index](const Eigen::VectorXd &proposed, const Eigen::VectorXd &current, bool susceptibility) {
              if (uk_prior)
                 return log_prior(proposed, current, susceptibility);
@@ -218,7 +218,7 @@ mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
         /*update of the variance-covariance matrix and the mean vector*/
         proposal_state = proposal::update( std::move( proposal_state ),
                 curr_parameters, k );
-     
+
         /*
         if (k>=nburn)
         {
@@ -233,26 +233,26 @@ mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
         auto prop_parameters = proposal::haario_adapt_scale(
                 curr_parameters,
                 proposal_state.chol_emp_cov,
-                proposal_state.chol_ini,0.05, 
+                proposal_state.chol_ini,0.05,
                 proposal_state.adaptive_scaling );*/
 
         auto prop_parameters = proposal::sherlock( k,
                 curr_parameters,
                 proposal_state );
 
-        auto prior_ratio = 
+        auto prior_ratio =
             log_prior_ratio_f(prop_parameters, curr_parameters, false );
 
         if (!std::isfinite(prior_ratio))
         {
             //Rcpp::Rcout << "Invalid proposed par" << std::endl;
             // TODO: code duplication with failure of acceptance
-            proposal_state = proposal::accepted( 
-                    std::move(proposal_state), 
+            proposal_state = proposal::accepted(
+                    std::move(proposal_state),
                     false, k );
         } else {
             /*translate into an initial infected population*/
-            
+
             Eigen::VectorXd prop_init_inf = flu::data::stratify_by_risk(
                     Eigen::VectorXd::Constant(no_age_groups, pow(10,prop_parameters[initial_infected_index]) ),
                     risk_ratios, no_risk_groups);
@@ -274,24 +274,24 @@ mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
                 prop_c = contacts::bootstrap_contacts( std::move(prop_c),
                         polymod, step_mat );
 
-            auto prop_contact_regular = 
+            auto prop_contact_regular =
                 contacts::to_symmetric_matrix( prop_c, age_data );
-                
-            Eigen::VectorXd prop_init_resist = Eigen::VectorXd::Zero(prop_init_inf.col());
 
-            result = infectionODE(pop_vec, 
-                    prop_init_inf, 
+            Eigen::VectorXd prop_init_resist = Eigen::VectorXd::Zero(prop_init_inf.size());
+
+            result = infectionODE(pop_vec,
+                    prop_init_inf,
                     prop_init_resist,
-                    time_latent, time_infectious, 
+                    time_latent, time_infectious,
                     pars_to_susceptibility(prop_parameters),
-                    prop_contact_regular, prop_parameters[transmissibility_index], 
+                    prop_contact_regular, prop_parameters[transmissibility_index],
                     vaccine_calendar, 7*24 );
 
             /*computes the associated likelihood with the proposed values*/
             prop_likelihood=log_likelihood_hyper_poisson(
-                    pars_to_epsilon(prop_parameters), 
-                    prop_parameters[psi_index], 
-                    days_to_weeks_5AG(result, mapping, pop_RCGP.size()), 
+                    pars_to_epsilon(prop_parameters),
+                    prop_parameters[psi_index],
+                    days_to_weeks_5AG(result, mapping, pop_RCGP.size()),
                     ili, mon_pop, n_pos, n_samples, pop_RCGP, d_app);
 
             /*Acceptance rate include the likelihood and the prior but no correction for the proposal as we use a symmetrical RW*/
@@ -299,7 +299,7 @@ mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
             // MCMC-R alternative prior?
             if (std::isinf(prop_likelihood) && std::isinf(curr_llikelihood) )
                 my_acceptance_rate = exp(prior_ratio); // We want to explore and find a non infinite likelihood
-            else 
+            else
                 my_acceptance_rate=
                     exp(prop_likelihood-curr_llikelihood+
                     prior_ratio);
@@ -307,7 +307,7 @@ mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
             if(R::runif(0,1)<my_acceptance_rate) /*with prior*/
             {
                 /*update the acceptance rate*/
-                proposal_state = proposal::accepted( 
+                proposal_state = proposal::accepted(
                         std::move(proposal_state), true, k );
 
                 curr_prior = prop_prior;
@@ -323,7 +323,7 @@ mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
             }
             else /*if reject*/
             {
-                proposal_state = proposal::accepted( 
+                proposal_state = proposal::accepted(
                         std::move(proposal_state), false, k );
             }
         }
@@ -343,8 +343,8 @@ mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
     return results;
 }
 
-double dmultinomial( const Eigen::VectorXi &x, int size, 
-        const Eigen::VectorXd &prob, 
+double dmultinomial( const Eigen::VectorXi &x, int size,
+        const Eigen::VectorXd &prob,
         bool use_log = false )
 {
     double loglik = 0.0;
@@ -368,7 +368,7 @@ double dmultinomial( const Eigen::VectorXi &x, int size,
 //' @return The probability of getting the counts, given the total size and probability of drawing each.
 //'
 // [[Rcpp::export(name="dmultinom.cpp")]]
-double dmultinomialCPP( Eigen::VectorXi x, int size, Eigen::VectorXd prob, 
+double dmultinomialCPP( Eigen::VectorXi x, int size, Eigen::VectorXd prob,
         bool use_log = false )
 {
     return dmultinomial( x, size, prob, use_log );
@@ -380,24 +380,24 @@ double dmultinomialCPP( Eigen::VectorXi x, int size, Eigen::VectorXd prob,
 //' @param ili The number of Influenza-like illness cases per week
 //' @param mon_pop The number of people monitored for ili
 //' @param n_pos The number of positive samples per strain (per week)
-//' @param n_samples The total number of samples tested 
+//' @param n_samples The total number of samples tested
 //' @param vaccine_calendar Vaccine calendars per strain valid for that year
 //' @param polymod_data Contact data for different age groups
 //' @param initial Vector with starting parameter values
 //' @param nburn Number of iterations of burn in
 //' @param nbatch Number of batches to run (number of samples to return)
 //' @param blen Length of each batch
-//' 
+//'
 //' @return Returns a list with the accepted samples and the corresponding llikelihood values and a matrix (contact.ids) containing the ids (row number) of the contacts data used to build the contact matrix.
 //'
 // [[Rcpp::export]]
-mcmc_result_inference_t inference_multistrains( 
-        std::vector<size_t> demography, 
-        Eigen::MatrixXi ili, Eigen::MatrixXi mon_pop, 
-        Rcpp::List n_pos, Eigen::MatrixXi n_samples, 
+mcmc_result_inference_t inference_multistrains(
+        std::vector<size_t> demography,
+        Eigen::MatrixXi ili, Eigen::MatrixXi mon_pop,
+        Rcpp::List n_pos, Eigen::MatrixXi n_samples,
         Rcpp::List vaccine_calendar,
         Eigen::MatrixXi polymod_data,
-        Eigen::VectorXd initial, 
+        Eigen::VectorXd initial,
         size_t nburn = 0,
         size_t nbatch = 1000, size_t blen = 1 )
 {
@@ -416,7 +416,7 @@ mcmc_result_inference_t inference_multistrains(
     for ( auto p : n_pos )
         positives.push_back( Rcpp::as<Eigen::MatrixXd>( p ) );
 
-    
+
     auto nag = 7;
     auto no_strains = n_pos.size();
 
@@ -432,13 +432,13 @@ mcmc_result_inference_t inference_multistrains(
     age_data.age_group_sizes = flu::data::group_age_data( demography,
             age_group_limits );
 
-    Eigen::MatrixXd risk_proportions = Eigen::MatrixXd( 
+    Eigen::MatrixXd risk_proportions = Eigen::MatrixXd(
             2, age_data.age_group_sizes.size() );
-    risk_proportions << 
-        0.021, 0.055, 0.098, 0.087, 0.092, 0.183, 0.45, 
+    risk_proportions <<
+        0.021, 0.055, 0.098, 0.087, 0.092, 0.183, 0.45,
         0, 0, 0, 0, 0, 0, 0;
 
-    auto pop_vec = flu::data::separate_into_risk_groups( 
+    auto pop_vec = flu::data::separate_into_risk_groups(
             age_data.age_group_sizes, risk_proportions  );
 
     /*pop RCGP*/
@@ -457,13 +457,13 @@ mcmc_result_inference_t inference_multistrains(
         contact_ids.push_back(i+1);
 
     auto curr_parameters = initial;
-    auto polymod = flu::contacts::table_to_contacts( polymod_data, 
-            age_group_limits ); 
+    auto polymod = flu::contacts::table_to_contacts( polymod_data,
+            age_group_limits );
 
-    auto curr_c = contacts::shuffle_by_id( polymod, 
+    auto curr_c = contacts::shuffle_by_id( polymod,
             contact_ids );
 
-    auto current_contact_regular = 
+    auto current_contact_regular =
         contacts::to_symmetric_matrix( curr_c, age_data );
 
     auto time_latent = 0.8;
@@ -479,7 +479,7 @@ mcmc_result_inference_t inference_multistrains(
         {
             auto sub_pars = pars.segment( i*8, 8 );
 
-            if( 
+            if(
                     sub_pars[0] <= 0 || sub_pars[0] >= 1 ||
                     sub_pars[1] <= 0 || sub_pars[1] >= 1 ||
                     sub_pars[2] <= 0 || sub_pars[2] >= 1 ||
@@ -516,7 +516,7 @@ mcmc_result_inference_t inference_multistrains(
         {
             auto sub_pars = pars.segment( i*8, 8 );
 
-            auto init_inf = Eigen::VectorXd::Constant( 
+            auto init_inf = Eigen::VectorXd::Constant(
                     nag, pow(10,sub_pars[7]) );
 
             Eigen::VectorXd susc(7);
@@ -524,17 +524,17 @@ mcmc_result_inference_t inference_multistrains(
                  sub_pars[5], sub_pars[5], sub_pars[5],
                  sub_pars[6];
 
-            auto seed_vec = flu::data::separate_into_risk_groups( 
+            auto seed_vec = flu::data::separate_into_risk_groups(
                     init_inf, risk_proportions  );
-                
-            Eigen::VectorXd resist_vec = Eigen::VectorXd::Zero(seed_vec.col());
 
-            auto result = infectionODE(pop_vec, 
+            Eigen::VectorXd resist_vec = Eigen::VectorXd::Zero(seed_vec.size());
+
+            auto result = infectionODE(pop_vec,
                     seed_vec,
                     resist_vec,
-                    time_latent, time_infectious, 
+                    time_latent, time_infectious,
                     susc,
-                    contact_regular, sub_pars[3], 
+                    contact_regular, sub_pars[3],
                     vaccine_calendars[i], 7*24 );
             auto week = days_to_weeks_5AG( result );
             week_result.push_back(week);
@@ -597,7 +597,7 @@ mcmc_result_inference_t inference_multistrains(
         auto prop_parameters = proposal::haario_adapt_scale(
                 curr_parameters,
                 proposal_state.chol_emp_cov,
-                proposal_state.chol_ini,0.05, 
+                proposal_state.chol_ini,0.05,
                 proposal_state.adaptive_scaling );
         */
         /*
@@ -619,7 +619,7 @@ mcmc_result_inference_t inference_multistrains(
         {
             //Rcpp::Rcout << "Invalid proposed par" << std::endl;
             // TODO: code duplication with failure of acceptance
-            proposal_state = proposal::accepted( 
+            proposal_state = proposal::accepted(
                     std::move(proposal_state), false, k );
         } else {
             auto prop_c = curr_c;
@@ -632,7 +632,7 @@ mcmc_result_inference_t inference_multistrains(
                 prop_c = contacts::bootstrap_contacts( std::move(prop_c),
                         polymod, step_mat );
 
-            auto prop_contact_regular = 
+            auto prop_contact_regular =
                 contacts::to_symmetric_matrix( prop_c, age_data );
 
             /*computes the associated likelihood with the proposed values*/
@@ -645,7 +645,7 @@ mcmc_result_inference_t inference_multistrains(
             // MCMC-R alternative prior?
             if (std::isinf(prop_llikelihood) && std::isinf(curr_llikelihood) )
                 my_acceptance_rate = exp(prior_ratio); // We want to explore and find a non infinite likelihood
-            else 
+            else
                 my_acceptance_rate=
                     exp(prop_llikelihood-curr_llikelihood+
                     prior_ratio);
@@ -654,7 +654,7 @@ mcmc_result_inference_t inference_multistrains(
                      std::isfinite(my_acceptance_rate)) /*with prior*/
             {
                 /*update the acceptance rate*/
-                proposal_state = proposal::accepted( 
+                proposal_state = proposal::accepted(
                         std::move(proposal_state), true, k );
 
                 curr_parameters = prop_parameters;
@@ -670,7 +670,7 @@ mcmc_result_inference_t inference_multistrains(
             }
             else /*if reject*/
             {
-                proposal_state = proposal::accepted( 
+                proposal_state = proposal::accepted(
                         std::move(proposal_state), false, k );
             }
         }
