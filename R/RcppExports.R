@@ -23,7 +23,7 @@
 #' @return Returns a list with the accepted samples and the corresponding llikelihood values and a matrix (contact.ids) containing the ids (row number) of the contacts data used to build the contact matrix.
 #'
 .inference_cpp <- function(demography, age_group_limits, ili, mon_pop, n_pos, n_samples, vaccine_calendar, polymod_data, initial, mapping, risk_ratios, epsilon_index, psi_index, transmissibility_index, susceptibility_index, initial_infected_index, lprior, pass_prior, no_age_groups, no_risk_groups, uk_prior, nburn = 0L, nbatch = 1000L, blen = 1L) {
-    .Call('_fluEvidenceSynthesis_inference_cpp', PACKAGE = 'fluEvidenceSynthesis', demography, age_group_limits, ili, mon_pop, n_pos, n_samples, vaccine_calendar, polymod_data, initial, mapping, risk_ratios, epsilon_index, psi_index, transmissibility_index, susceptibility_index, initial_infected_index, lprior, pass_prior, no_age_groups, no_risk_groups, uk_prior, nburn, nbatch, blen)
+    .Call('_fluEvidenceSynthesisCW_inference_cpp', PACKAGE = 'fluEvidenceSynthesisCW', demography, age_group_limits, ili, mon_pop, n_pos, n_samples, vaccine_calendar, polymod_data, initial, mapping, risk_ratios, epsilon_index, psi_index, transmissibility_index, susceptibility_index, initial_infected_index, lprior, pass_prior, no_age_groups, no_risk_groups, uk_prior, nburn, nbatch, blen)
 }
 
 #' Probability density function for multinomial distribution
@@ -36,7 +36,7 @@
 #' @return The probability of getting the counts, given the total size and probability of drawing each.
 #'
 dmultinom.cpp <- function(x, size, prob, use_log = FALSE) {
-    .Call('_fluEvidenceSynthesis_dmultinomialCPP', PACKAGE = 'fluEvidenceSynthesis', x, size, prob, use_log)
+    .Call('_fluEvidenceSynthesisCW_dmultinomialCPP', PACKAGE = 'fluEvidenceSynthesisCW', x, size, prob, use_log)
 }
 
 #' MCMC based inference of the parameter values given the different data sets based on multiple strains
@@ -56,7 +56,7 @@ dmultinom.cpp <- function(x, size, prob, use_log = FALSE) {
 #' @return Returns a list with the accepted samples and the corresponding llikelihood values and a matrix (contact.ids) containing the ids (row number) of the contacts data used to build the contact matrix.
 #'
 inference_multistrains <- function(demography, ili, mon_pop, n_pos, n_samples, vaccine_calendar, polymod_data, initial, nburn = 0L, nbatch = 1000L, blen = 1L) {
-    .Call('_fluEvidenceSynthesis_inference_multistrains', PACKAGE = 'fluEvidenceSynthesis', demography, ili, mon_pop, n_pos, n_samples, vaccine_calendar, polymod_data, initial, nburn, nbatch, blen)
+    .Call('_fluEvidenceSynthesisCW_inference_multistrains', PACKAGE = 'fluEvidenceSynthesisCW', demography, ili, mon_pop, n_pos, n_samples, vaccine_calendar, polymod_data, initial, nburn, nbatch, blen)
 }
 
 #' Update means when a new posterior sample is calculated
@@ -67,7 +67,7 @@ inference_multistrains <- function(demography, ili, mon_pop, n_pos, n_samples, v
 #' @return The updated means given the new parameter sample
 #'
 .updateMeans <- function(means, v, n) {
-    .Call('_fluEvidenceSynthesis_updateMeans', PACKAGE = 'fluEvidenceSynthesis', means, v, n)
+    .Call('_fluEvidenceSynthesisCW_updateMeans', PACKAGE = 'fluEvidenceSynthesisCW', means, v, n)
 }
 
 #' Update covariance matrix of posterior parameters
@@ -80,17 +80,17 @@ inference_multistrains <- function(demography, ili, mon_pop, n_pos, n_samples, v
 #' @return The updated covariance matrix given the new parameter sample
 #'
 .updateCovariance <- function(cov, v, means, n) {
-    .Call('_fluEvidenceSynthesis_updateCovariance', PACKAGE = 'fluEvidenceSynthesis', cov, v, means, n)
+    .Call('_fluEvidenceSynthesisCW_updateCovariance', PACKAGE = 'fluEvidenceSynthesisCW', cov, v, means, n)
 }
 
 #' Convert given week in given year into an exact date corresponding to the Monday of that week
 #'
 #' @param week The number of the week we need the date of
 #' @param year The year
-#' @return The date of the Monday in that week 
+#' @return The date of the Monday in that week
 #'
 getTimeFromWeekYear <- function(week, year) {
-    .Call('_fluEvidenceSynthesis_getTimeFromWeekYear', PACKAGE = 'fluEvidenceSynthesis', week, year)
+    .Call('_fluEvidenceSynthesisCW_getTimeFromWeekYear', PACKAGE = 'fluEvidenceSynthesisCW', week, year)
 }
 
 #' Run the SEIR model for the given parameters
@@ -106,12 +106,30 @@ getTimeFromWeekYear <- function(week, year) {
 #' @return A data frame with number of new cases after each interval during the year
 #'
 .infection.model <- function(age_sizes, vaccine_calendar, polymod_data, susceptibility, transmissibility, init_pop, infection_delays, interval = 1L) {
-    .Call('_fluEvidenceSynthesis_runSEIRModel', PACKAGE = 'fluEvidenceSynthesis', age_sizes, vaccine_calendar, polymod_data, susceptibility, transmissibility, init_pop, infection_delays, interval)
+    .Call('_fluEvidenceSynthesisCW_runSEIRModel', PACKAGE = 'fluEvidenceSynthesisCW', age_sizes, vaccine_calendar, polymod_data, susceptibility, transmissibility, init_pop, infection_delays, interval)
 }
 
 #' Run the SEIR model for the given parameters
 #'
-#' @param population The population size of the different age groups, subdivided into risk groups 
+#' @param population The population size of the different age groups, subdivided into risk groups
+#' @param initial_infected The corresponding number of initially infected
+#' @param initial_resistant The corresponding number of initially resistant (unvaccinated)
+#' @param initial_vac_resistant The corresponding number of initially resistant (vaccinated)
+#' @param vaccine_calendar A vaccine calendar valid for that year
+#' @param contact_matrix Contact rates between different age groups
+#' @param susceptibility Vector with susceptibilities of each age group
+#' @param transmissibility The transmissibility of the strain
+#' @param infection_delays Vector with the time of latent infection and time infectious
+#' @param dates Dates to return values for.
+#' @return A data frame with number of new cases after each interval during the year
+#'
+infectionODEsDHSC.cpp <- function(population, initial_infected, initial_resistant, initial_vac_resistant, vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays, dates) {
+    .Call('_fluEvidenceSynthesisCW_infectionODEs', PACKAGE = 'fluEvidenceSynthesisCW', population, initial_infected, initial_resistant, initial_vac_resistant, vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays, dates)
+}
+
+#' Run the SEIR model for the given parameters
+#'
+#' @param population The population size of the different age groups, subdivided into risk groups
 #' @param initial_infected The corresponding number of initially infected
 #' @param vaccine_calendar A vaccine calendar valid for that year
 #' @param contact_matrix Contact rates between different age groups
@@ -121,8 +139,8 @@ getTimeFromWeekYear <- function(week, year) {
 #' @param dates Dates to return values for.
 #' @return A data frame with number of new cases after each interval during the year
 #'
-infectionODEs.cpp <- function(population, initial_infected, initial_resistant, vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays, dates) {
-    .Call('_fluEvidenceSynthesis_infectionODEs', PACKAGE = 'fluEvidenceSynthesis', population, initial_infected, initial_resistant, vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays, dates)
+infectionODEs.cpp <- function(population, initial_infected, vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays, dates) {
+    .Call('_fluEvidenceSynthesisCW_infectionODEss', PACKAGE = 'fluEvidenceSynthesisCW', population, initial_infected, vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays, dates)
 }
 
 #' Returns log likelihood of the predicted number of cases given the data for that week
@@ -141,7 +159,7 @@ infectionODEs.cpp <- function(population, initial_infected, initial_resistant, v
 #' @seealso{\link{total_log_likelihood_cases}}
 #'
 .log_likelihood_cases <- function(epsilon, psi, predicted, population_size, ili_cases, ili_monitored, confirmed_positive, confirmed_samples) {
-    .Call('_fluEvidenceSynthesis_log_likelihood', PACKAGE = 'fluEvidenceSynthesis', epsilon, psi, predicted, population_size, ili_cases, ili_monitored, confirmed_positive, confirmed_samples)
+    .Call('_fluEvidenceSynthesisCW_log_likelihood', PACKAGE = 'fluEvidenceSynthesisCW', epsilon, psi, predicted, population_size, ili_cases, ili_monitored, confirmed_positive, confirmed_samples)
 }
 
 #' Returns log likelihood of the predicted number of cases given the data
@@ -151,7 +169,7 @@ infectionODEs.cpp <- function(population, initial_infected, initial_resistant, v
 #' @param epsilon Parameter for the probability distribution by age group
 #' @param psi Parameter for the probability distribution
 #' @param predicted Number of cases predicted by your model for each week and age group
-#' @param population_size The total population size in the age groups 
+#' @param population_size The total population size in the age groups
 #' @param ili_cases The number of Influenza Like Illness cases by week and age group
 #' @param ili_monitored The size of the population monitored for ILI  by week and age group
 #' @param confirmed_positive The number of samples positive for the Influenza strain  by week and age group
@@ -160,7 +178,7 @@ infectionODEs.cpp <- function(population, initial_infected, initial_resistant, v
 #'
 #'
 log_likelihood_cases <- function(epsilon, psi, predicted, population_size, ili_cases, ili_monitored, confirmed_positive, confirmed_samples, depth = 2L) {
-    .Call('_fluEvidenceSynthesis_total_log_likelihood', PACKAGE = 'fluEvidenceSynthesis', epsilon, psi, predicted, population_size, ili_cases, ili_monitored, confirmed_positive, confirmed_samples, depth)
+    .Call('_fluEvidenceSynthesisCW_total_log_likelihood', PACKAGE = 'fluEvidenceSynthesisCW', epsilon, psi, predicted, population_size, ili_cases, ili_monitored, confirmed_positive, confirmed_samples, depth)
 }
 
 #' Run an ODE model with the runge-kutta solver for testing purposes
@@ -169,7 +187,7 @@ log_likelihood_cases <- function(epsilon, psi, predicted, population_size, ili_c
 #' @param h_step The starting integration delta size
 #'
 .runRKF <- function(step_size = 0.1, h_step = 0.01) {
-    .Call('_fluEvidenceSynthesis_runPredatorPrey', PACKAGE = 'fluEvidenceSynthesis', step_size, h_step)
+    .Call('_fluEvidenceSynthesisCW_runPredatorPrey', PACKAGE = 'fluEvidenceSynthesisCW', step_size, h_step)
 }
 
 #' Run an ODE model with the simple step wise solver for testing purposes
@@ -178,7 +196,7 @@ log_likelihood_cases <- function(epsilon, psi, predicted, population_size, ili_c
 #' @param h_step The starting integration delta size
 #'
 .runStep <- function(step_size = 0.1, h_step = 1e-5) {
-    .Call('_fluEvidenceSynthesis_runPredatorPreySimple', PACKAGE = 'fluEvidenceSynthesis', step_size, h_step)
+    .Call('_fluEvidenceSynthesisCW_runPredatorPreySimple', PACKAGE = 'fluEvidenceSynthesisCW', step_size, h_step)
 }
 
 #' Adaptive MCMC algorithm implemented in C++
@@ -186,22 +204,22 @@ log_likelihood_cases <- function(epsilon, psi, predicted, population_size, ili_c
 #' MCMC which adapts its proposal distribution for faster convergence following:
 #' Sherlock, C., Fearnhead, P. and Roberts, G.O. The Random Walk Metrolopois: Linking Theory and Practice Through a Case Study. Statistical Science 25, no.2 (2010): 172-190.
 #'
-#' @param lprior A function returning the log prior probability of the parameters 
+#' @param lprior A function returning the log prior probability of the parameters
 #' @param llikelihood A function returning the log likelihood of the parameters given the data
-#' @param outfun A function that is called for each batch. Can be useful to log certain values. 
-#' @param acceptfun A function that is called whenever a sample is accepted. 
+#' @param outfun A function that is called for each batch. Can be useful to log certain values.
+#' @param acceptfun A function that is called whenever a sample is accepted.
 #' @param nburn Number of iterations of burn in
 #' @param initial Vector with starting parameter values
 #' @param nbatch Number of batches to run (number of samples to return)
 #' @param blen Length of each batch
 #' @param verbose Output debugging information
-#' 
+#'
 #' @return Returns a list with the accepted samples and the corresponding llikelihood values
 #'
 #' @seealso \code{\link{adaptive.mcmc}} For a more flexible R frontend to this function.
 #'
 adaptive.mcmc.cpp <- function(lprior, llikelihood, outfun, acceptfun, nburn, initial, nbatch, blen = 1L, verbose = FALSE) {
-    .Call('_fluEvidenceSynthesis_adaptiveMCMCR', PACKAGE = 'fluEvidenceSynthesis', lprior, llikelihood, outfun, acceptfun, nburn, initial, nbatch, blen, verbose)
+    .Call('_fluEvidenceSynthesisCW_adaptiveMCMCR', PACKAGE = 'fluEvidenceSynthesisCW', lprior, llikelihood, outfun, acceptfun, nburn, initial, nbatch, blen, verbose)
 }
 
 #' Create a contact matrix based on polymod data.
@@ -213,7 +231,7 @@ adaptive.mcmc.cpp <- function(lprior, llikelihood, outfun, acceptfun, nburn, ini
 #' @return Returns a symmetric matrix with the frequency of contact between each age group
 #'
 contact_matrix <- function(polymod_data, demography, age_group_limits = as.numeric( c(             1, 5, 15, 25, 45, 65 ))) {
-    .Call('_fluEvidenceSynthesis_contact_matrix', PACKAGE = 'fluEvidenceSynthesis', polymod_data, demography, age_group_limits)
+    .Call('_fluEvidenceSynthesisCW_contact_matrix', PACKAGE = 'fluEvidenceSynthesisCW', polymod_data, demography, age_group_limits)
 }
 
 #' Create age group level description based on passed upper limits
@@ -225,7 +243,7 @@ contact_matrix <- function(polymod_data, demography, age_group_limits = as.numer
 #' @return Vector representing the age group(s)
 #'
 age_group_levels <- function(limits = as.numeric( c())) {
-    .Call('_fluEvidenceSynthesis_age_group_levels', PACKAGE = 'fluEvidenceSynthesis', limits)
+    .Call('_fluEvidenceSynthesisCW_age_group_levels', PACKAGE = 'fluEvidenceSynthesisCW', limits)
 }
 
 #' Extract upper age group limits from age group level description
@@ -239,12 +257,12 @@ age_group_levels <- function(limits = as.numeric( c())) {
 #' @seealso \code{\link{age_group_levels}} For the reverse of this function.
 #'
 age_group_limits <- function(levels) {
-    .Call('_fluEvidenceSynthesis_age_group_limits', PACKAGE = 'fluEvidenceSynthesis', levels)
+    .Call('_fluEvidenceSynthesisCW_age_group_limits', PACKAGE = 'fluEvidenceSynthesisCW', levels)
 }
 
 #' Age as age group
 #'
-#' @description Returns the age group a certain age belongs to given the upper age group limits 
+#' @description Returns the age group a certain age belongs to given the upper age group limits
 #'
 #' @param age The relevant age. This can be a vector.
 #' @param limits The upper limit to each age groups (not included) (1,5,15,25,45,65) corresponds to the following age groups: <1, 1-4, 5-14, 15-24, 25-44, 45-64 and >=65.
@@ -252,7 +270,7 @@ age_group_limits <- function(levels) {
 #' @return Factors representing the age group(s)
 #'
 as_age_group <- function(age, limits = as.numeric( c(             1, 5, 15, 25, 45, 65 ))) {
-    .Call('_fluEvidenceSynthesis_as_age_group', PACKAGE = 'fluEvidenceSynthesis', age, limits)
+    .Call('_fluEvidenceSynthesisCW_as_age_group', PACKAGE = 'fluEvidenceSynthesisCW', age, limits)
 }
 
 #' @title Stratify the population by age
@@ -265,11 +283,11 @@ as_age_group <- function(age, limits = as.numeric( c(             1, 5, 15, 25, 
 #' @return A vector with the population in each age group.
 #'
 stratify_by_age <- function(age_sizes, limits = as.numeric( c(             1, 5, 15, 25, 45, 65 ))) {
-    .Call('_fluEvidenceSynthesis_separate_into_age_groups', PACKAGE = 'fluEvidenceSynthesis', age_sizes, limits)
+    .Call('_fluEvidenceSynthesisCW_separate_into_age_groups', PACKAGE = 'fluEvidenceSynthesisCW', age_sizes, limits)
 }
 
 #' @title Stratify age groups into different risk groups
-#' 
+#'
 #' @description Stratifies the age groups and returns the population size of each age group and risk group.
 #'
 #' @param age_groups A vector containing the population size of each age group
@@ -278,15 +296,15 @@ stratify_by_age <- function(age_sizes, limits = as.numeric( c(             1, 5,
 #' @return A vector with the population in the low risk groups, followed by the other risk groups. The length is equal to the number of age groups times the number of risk groups (including the low risk group).
 #'
 .stratify_by_risk <- function(age_groups, risk_ratios, no_risk_groups) {
-    .Call('_fluEvidenceSynthesis_stratify_by_risk', PACKAGE = 'fluEvidenceSynthesis', age_groups, risk_ratios, no_risk_groups)
+    .Call('_fluEvidenceSynthesisCW_stratify_by_risk', PACKAGE = 'fluEvidenceSynthesisCW', age_groups, risk_ratios, no_risk_groups)
 }
 
 #' @title Calculate R0 from transmission rate
 #'
-#' @description Uses the transmission rate (\eqn{\lambda}), contact matrix (\eqn{c}), population (\eqn{N}), and infectious period (\eqn{\gamma}) 
+#' @description Uses the transmission rate (\eqn{\lambda}), contact matrix (\eqn{c}), population (\eqn{N}), and infectious period (\eqn{\gamma})
 #' to calculate the R0 using the following equation.
 #' \deqn{\lambda max(EV(C)) \gamma}
-#' where \eqn{EV(C)} denotes the eigenvalues of the matrix \eqn{C} which is calculated from the contact matrix and the population 
+#' where \eqn{EV(C)} denotes the eigenvalues of the matrix \eqn{C} which is calculated from the contact matrix and the population
 #' (\eqn{C[i,j] = c[i,j] N[j]}).
 #'
 #' @param transmission_rate The transmission rate of the disease
@@ -296,15 +314,15 @@ stratify_by_age <- function(age_sizes, limits = as.numeric( c(             1, 5,
 #'
 #' @return Returns the R0
 as_R0 <- function(transmission_rate, contact_matrix, age_groups, duration = 1.8) {
-    .Call('_fluEvidenceSynthesis_as_R0', PACKAGE = 'fluEvidenceSynthesis', transmission_rate, contact_matrix, age_groups, duration)
+    .Call('_fluEvidenceSynthesisCW_as_R0', PACKAGE = 'fluEvidenceSynthesisCW', transmission_rate, contact_matrix, age_groups, duration)
 }
 
-#' @title Calculate transmission rate from R0 
+#' @title Calculate transmission rate from R0
 #'
-#' @description Uses the R0 (\eqn{R0}), contact matrix (\eqn{c}), population (\eqn{N}), and infectious period (\eqn{\gamma}) 
+#' @description Uses the R0 (\eqn{R0}), contact matrix (\eqn{c}), population (\eqn{N}), and infectious period (\eqn{\gamma})
 #' to calculate the transmission rate using the following equation.
 #' \deqn{R0/(max(EV(C)) \gamma)}
-#' where \eqn{EV(C)} denotes the eigenvalues of the matrix \eqn{C} which is calculated from the contact matrix and the population 
+#' where \eqn{EV(C)} denotes the eigenvalues of the matrix \eqn{C} which is calculated from the contact matrix and the population
 #' (\eqn{C[i,j] = c[i,j] N[j]}).
 #'
 #' @param R0 The R0 of the disease
@@ -312,9 +330,9 @@ as_R0 <- function(transmission_rate, contact_matrix, age_groups, duration = 1.8)
 #' @param age_groups The population size of the different age groups
 #' @param duration Duration of the infectious period. Default value is 1.8 days
 #'
-#' @return Returns the transmission rate 
+#' @return Returns the transmission rate
 as_transmission_rate <- function(R0, contact_matrix, age_groups, duration = 1.8) {
-    .Call('_fluEvidenceSynthesis_as_transmission_rate', PACKAGE = 'fluEvidenceSynthesis', R0, contact_matrix, age_groups, duration)
+    .Call('_fluEvidenceSynthesisCW_as_transmission_rate', PACKAGE = 'fluEvidenceSynthesisCW', R0, contact_matrix, age_groups, duration)
 }
 
 #' Calculate number of influenza cases given a vaccination strategy
@@ -334,5 +352,6 @@ as_transmission_rate <- function(R0, contact_matrix, age_groups, duration = 1.8)
 #' @return A data frame with the total number of influenza cases in that year
 #'
 vaccinationScenario <- function(age_sizes, vaccine_calendar, polymod_data, contact_ids, parameters) {
-    .Call('_fluEvidenceSynthesis_vaccinationScenario', PACKAGE = 'fluEvidenceSynthesis', age_sizes, vaccine_calendar, polymod_data, contact_ids, parameters)
+    .Call('_fluEvidenceSynthesisCW_vaccinationScenario', PACKAGE = 'fluEvidenceSynthesisCW', age_sizes, vaccine_calendar, polymod_data, contact_ids, parameters)
 }
+
