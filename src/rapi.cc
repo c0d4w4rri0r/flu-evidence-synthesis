@@ -31,7 +31,7 @@ Rcpp::Date ptime_to_date( const bt::ptime &ti )
 
 bt::ptime datetime_to_ptime( const Rcpp::Datetime &ti )
 {
-    return bt::ptime( boost::gregorian::date(ti.getYear(), ti.getMonth(), 
+    return bt::ptime( boost::gregorian::date(ti.getYear(), ti.getMonth(),
                 ti.getDay()),
             bt::hours( ti.getHours() )+
             bt::minutes( ti.getMinutes() ) +
@@ -41,7 +41,7 @@ bt::ptime datetime_to_ptime( const Rcpp::Datetime &ti )
 
 bt::ptime date_to_ptime( const Rcpp::Date &ti )
 {
-    return bt::ptime( boost::gregorian::date(ti.getYear(), ti.getMonth(), 
+    return bt::ptime( boost::gregorian::date(ti.getYear(), ti.getMonth(),
                 ti.getDay()), bt::hours(12) );
 }
 
@@ -78,7 +78,7 @@ Eigen::VectorXd updateMeans( Eigen::VectorXd means,
 //' @return The updated covariance matrix given the new parameter sample
 //'
 // [[Rcpp::export(name=".updateCovariance")]]
-Eigen::MatrixXd updateCovariance( Eigen::MatrixXd cov, 
+Eigen::MatrixXd updateCovariance( Eigen::MatrixXd cov,
         Eigen::VectorXd v, Eigen::VectorXd means, size_t n )
 {
     return flu::proposal::updateCovariance( cov, v, means, n );
@@ -88,7 +88,7 @@ Eigen::MatrixXd updateCovariance( Eigen::MatrixXd cov,
 //'
 //' @param week The number of the week we need the date of
 //' @param year The year
-//' @return The date of the Monday in that week 
+//' @return The date of the Monday in that week
 //'
 // [[Rcpp::export]]
 Rcpp::Datetime getTimeFromWeekYear( int week, int year )
@@ -113,13 +113,13 @@ Rcpp::Datetime getTimeFromWeekYear( int week, int year )
 //'
 // [[Rcpp::export(name=".infection.model")]]
 Rcpp::DataFrame runSEIRModel(
-        std::vector<size_t> age_sizes, 
+        std::vector<size_t> age_sizes,
         flu::vaccine::vaccine_t vaccine_calendar,
         Eigen::MatrixXi polymod_data,
-        Eigen::VectorXd susceptibility, 
-        double transmissibility, 
+        Eigen::VectorXd susceptibility,
+        double transmissibility,
         double init_pop,
-        Eigen::VectorXd infection_delays, 
+        Eigen::VectorXd infection_delays,
         size_t interval = 1 )
 {
 
@@ -127,26 +127,26 @@ Rcpp::DataFrame runSEIRModel(
     age_data.age_sizes = age_sizes;
 
     std::vector<size_t> age_group_limits = {1,5,15,25,45,65};
-    age_data.age_group_sizes = flu::data::group_age_data( age_sizes, 
+    age_data.age_group_sizes = flu::data::group_age_data( age_sizes,
             age_group_limits );
 
-    Eigen::MatrixXd risk_proportions = Eigen::MatrixXd( 
+    Eigen::MatrixXd risk_proportions = Eigen::MatrixXd(
             2, age_data.age_group_sizes.size() );
-    risk_proportions << 
-        0.021, 0.055, 0.098, 0.087, 0.092, 0.183, 0.45, 
+    risk_proportions <<
+        0.021, 0.055, 0.098, 0.087, 0.092, 0.183, 0.45,
         0, 0, 0, 0, 0, 0, 0;
 
-    auto pop_vec = flu::data::separate_into_risk_groups( 
+    auto pop_vec = flu::data::separate_into_risk_groups(
             age_data.age_group_sizes, risk_proportions );
 
     /*translate into an initial infected population*/
-    auto curr_init_inf = Eigen::VectorXd::Constant( 
+    auto curr_init_inf = Eigen::VectorXd::Constant(
             susceptibility.size(), pow(10,init_pop) );
 
-    auto current_contact_regular = 
-        flu::contacts::to_symmetric_matrix( 
+    auto current_contact_regular =
+        flu::contacts::to_symmetric_matrix(
                 flu::contacts::table_to_contacts(polymod_data,
-                    age_group_limits ), 
+                    age_group_limits ),
                 age_data );
 
     auto result = flu::one_year_SEIR_with_vaccination(pop_vec, curr_init_inf, infection_delays[0], infection_delays[1], susceptibility, current_contact_regular, transmissibility, vaccine_calendar, interval*24 );
@@ -159,7 +159,7 @@ Rcpp::DataFrame runSEIRModel(
     auto times = Rcpp::DatetimeVector(result.times.size());
     for ( size_t i = 0; i < result.times.size(); ++i )
     {
-        times[i] = 
+        times[i] =
                 Rcpp::Datetime(
             bt::to_iso_extended_string( result.times[i] ),
             "%Y-%m-%dT%H:%M:%OS");
@@ -171,7 +171,7 @@ Rcpp::DataFrame runSEIRModel(
     for (int i=0; i<result.cases.cols(); ++i)
     {
         resultList[i+1] = Eigen::VectorXd(result.cases.col(i));
-        columnNames.push_back( 
+        columnNames.push_back(
                 "V" + boost::lexical_cast<std::string>( i+1 ) );
     }
 
@@ -184,8 +184,10 @@ Rcpp::DataFrame runSEIRModel(
 
 //' Run the SEIR model for the given parameters
 //'
-//' @param population The population size of the different age groups, subdivided into risk groups 
+//' @param population The population size of the different age groups, subdivided into risk groups
 //' @param initial_infected The corresponding number of initially infected
+//' @param initial_resistant The corresponding number of initially resistant (unvaccinated)
+//' @param initial_vac_resistant The corresponding number of initially resistant (vaccinated)
 //' @param vaccine_calendar A vaccine calendar valid for that year
 //' @param contact_matrix Contact rates between different age groups
 //' @param susceptibility Vector with susceptibilities of each age group
@@ -194,28 +196,29 @@ Rcpp::DataFrame runSEIRModel(
 //' @param dates Dates to return values for.
 //' @return A data frame with number of new cases after each interval during the year
 //'
-// [[Rcpp::export(name="infectionODEs.cpp")]]
+// [[Rcpp::export(name="infectionODEsDHSC.cpp")]]
 Rcpp::DataFrame infectionODEs(
         Rcpp::NumericVector population,
-        Eigen::VectorXd initial_infected, 
+        Eigen::VectorXd initial_infected,
         Eigen::VectorXd initial_resistant,
+        Eigen::VectorXd initial_vac_resistant,
         flu::vaccine::vaccine_t vaccine_calendar,
         Eigen::MatrixXd contact_matrix,
-        Eigen::VectorXd susceptibility, 
-        double transmissibility, 
-        Eigen::VectorXd infection_delays, 
+        Eigen::VectorXd susceptibility,
+        double transmissibility,
+        Eigen::VectorXd infection_delays,
         Rcpp::DateVector dates )
 {
 
     Eigen::VectorXd popv(population.size());
     for (int i = 0; i < population.size(); ++i)
         popv[i] = population[i];
-    
-    if (contact_matrix.cols() != contact_matrix.rows()) 
+
+    if (contact_matrix.cols() != contact_matrix.rows())
         ::Rf_error("Contact matrix should be a square matrix");
     else if (contact_matrix.cols() != susceptibility.size())
         ::Rf_error("Contact matrix and susceptibility vector should use the same number of age groups.");
-    else if (contact_matrix.cols()*3 < popv.size()) 
+    else if (contact_matrix.cols()*3 < popv.size())
         ::Rf_error("Maximum of three risk groups are expected. Population vector should have the initial popv of each group");
     else if (popv.size()%contact_matrix.cols()!=0)
         ::Rf_error("Population groups and contact_matrix size mismatch");
@@ -223,6 +226,8 @@ Rcpp::DataFrame infectionODEs(
         ::Rf_error("Population vector and initial_infected should have the same number of entries");
     else if (popv.size() != initial_resistant.size())
         ::Rf_error("Population vector and initial_resistant should have the same number of entries");
+    else if (popv.size() != initial_vac_resistant.size())
+        ::Rf_error("Population vector and initial_vac_resistant should have the same number of entries");
 
     auto dim = popv.size();
     if (contact_matrix.cols() != popv.size()/3)
@@ -230,11 +235,13 @@ Rcpp::DataFrame infectionODEs(
         popv.conservativeResize(contact_matrix.cols()*3);
         initial_infected.conservativeResize(contact_matrix.cols()*3);
         initial_resistant.conservativeResize(contact_matrix.cols()*3);
+        initial_vac_resistant.conservativeResize(contact_matrix.cols()*3);
         for( size_t i = dim; i<popv.size(); ++i)
         {
             popv[i] = 0;
             initial_infected[i] = 0;
             initial_resistant[i] = 0;
+            initial_vac_resistant[i] = 0;
         }
     }
 
@@ -245,7 +252,7 @@ Rcpp::DataFrame infectionODEs(
     }
 
     auto result = flu::infectionODE(
-        popv, initial_infected, initial_resistant, 
+        popv, initial_infected, initial_resistant, initial_vac_resistant,
         infection_delays[0], infection_delays[1],
         susceptibility, contact_matrix, transmissibility,
         vaccine_calendar, datesC );
@@ -275,7 +282,7 @@ Rcpp::DataFrame infectionODEs(
     {
         resultList[i+1] = Eigen::VectorXd(result.cases.col(i));
         if (!population.hasAttribute("names"))
-            columnNames.push_back( 
+            columnNames.push_back(
                 "V" + boost::lexical_cast<std::string>( i+1 ) );
     }
 
@@ -284,6 +291,36 @@ Rcpp::DataFrame infectionODEs(
     df.attr("names") = columnNames;
 
     return df;
+}
+
+//' Run the SEIR model for the given parameters
+//'
+//' @param population The population size of the different age groups, subdivided into risk groups
+//' @param initial_infected The corresponding number of initially infected
+//' @param vaccine_calendar A vaccine calendar valid for that year
+//' @param contact_matrix Contact rates between different age groups
+//' @param susceptibility Vector with susceptibilities of each age group
+//' @param transmissibility The transmissibility of the strain
+//' @param infection_delays Vector with the time of latent infection and time infectious
+//' @param dates Dates to return values for.
+//' @return A data frame with number of new cases after each interval during the year
+//'
+// [[Rcpp::export(name="infectionODEs.cpp")]]
+Rcpp::DataFrame infectionODEss(
+        Rcpp::NumericVector population,
+        Eigen::VectorXd initial_infected,
+        flu::vaccine::vaccine_t vaccine_calendar,
+        Eigen::MatrixXd contact_matrix,
+        Eigen::VectorXd susceptibility,
+        double transmissibility,
+        Eigen::VectorXd infection_delays,
+        Rcpp::DateVector dates )
+{
+    Eigen::VectorXd initial_resistant = Eigen::VectorXd::Zero(initial_infected.size());
+    Eigen::VectorXd initial_vac_resistant = Eigen::VectorXd::Zero(initial_infected.size());
+    return infectionODEs(population, initial_infected, initial_resistant, initial_vac_resistant,
+                         vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays,
+                         dates )
 }
 
 //' Returns log likelihood of the predicted number of cases given the data for that week
@@ -302,8 +339,8 @@ Rcpp::DataFrame infectionODEs(
 //' @seealso{\link{total_log_likelihood_cases}}
 //'
 // [[Rcpp::export(name=".log_likelihood_cases")]]
-double log_likelihood( double epsilon, double psi, 
-        size_t predicted, double population_size, 
+double log_likelihood( double epsilon, double psi,
+        size_t predicted, double population_size,
         int ili_cases, int ili_monitored,
         int confirmed_positive, int confirmed_samples )
 {
@@ -320,7 +357,7 @@ double log_likelihood( double epsilon, double psi,
 //' @param epsilon Parameter for the probability distribution by age group
 //' @param psi Parameter for the probability distribution
 //' @param predicted Number of cases predicted by your model for each week and age group
-//' @param population_size The total population size in the age groups 
+//' @param population_size The total population size in the age groups
 //' @param ili_cases The number of Influenza Like Illness cases by week and age group
 //' @param ili_monitored The size of the population monitored for ILI  by week and age group
 //' @param confirmed_positive The number of samples positive for the Influenza strain  by week and age group
@@ -329,8 +366,8 @@ double log_likelihood( double epsilon, double psi,
 //'
 //'
 // [[Rcpp::export(name="log_likelihood_cases")]]
-double total_log_likelihood(  Eigen::VectorXd epsilon, double psi, 
-        Eigen::MatrixXi predicted, Eigen::VectorXi population_size, 
+double total_log_likelihood(  Eigen::VectorXd epsilon, double psi,
+        Eigen::MatrixXi predicted, Eigen::VectorXi population_size,
         Eigen::MatrixXi ili_cases, Eigen::MatrixXi ili_monitored,
         Eigen::MatrixXi confirmed_positive, Eigen::MatrixXi confirmed_samples, int depth = 2)
 {
@@ -340,7 +377,7 @@ double total_log_likelihood(  Eigen::VectorXd epsilon, double psi,
             ll += flu::log_likelihood( epsilon[j], psi,
                     predicted(i,j), population_size[j],
                     ili_cases(i,j), ili_monitored(i,j),
-                    confirmed_positive(i,j), confirmed_samples(i,j), 
+                    confirmed_positive(i,j), confirmed_samples(i,j),
                     depth);
         }
     }
@@ -425,27 +462,27 @@ Eigen::MatrixXd runPredatorPreySimple(double step_size = 0.1, double h_step=1e-5
 //' MCMC which adapts its proposal distribution for faster convergence following:
 //' Sherlock, C., Fearnhead, P. and Roberts, G.O. The Random Walk Metrolopois: Linking Theory and Practice Through a Case Study. Statistical Science 25, no.2 (2010): 172-190.
 //'
-//' @param lprior A function returning the log prior probability of the parameters 
+//' @param lprior A function returning the log prior probability of the parameters
 //' @param llikelihood A function returning the log likelihood of the parameters given the data
-//' @param outfun A function that is called for each batch. Can be useful to log certain values. 
-//' @param acceptfun A function that is called whenever a sample is accepted. 
+//' @param outfun A function that is called for each batch. Can be useful to log certain values.
+//' @param acceptfun A function that is called whenever a sample is accepted.
 //' @param nburn Number of iterations of burn in
 //' @param initial Vector with starting parameter values
 //' @param nbatch Number of batches to run (number of samples to return)
 //' @param blen Length of each batch
 //' @param verbose Output debugging information
-//' 
+//'
 //' @return Returns a list with the accepted samples and the corresponding llikelihood values
 //'
 //' @seealso \code{\link{adaptive.mcmc}} For a more flexible R frontend to this function.
 //'
 // [[Rcpp::export(name="adaptive.mcmc.cpp")]]
-Rcpp::List adaptiveMCMCR( 
+Rcpp::List adaptiveMCMCR(
         Rcpp::Function lprior, Rcpp::Function llikelihood,
         Rcpp::Function outfun,
         Rcpp::Function acceptfun,
         size_t nburn,
-        Eigen::VectorXd initial, 
+        Eigen::VectorXd initial,
         size_t nbatch, size_t blen = 1, bool verbose = false )
 {
     auto cppLprior = [&lprior]( const Eigen::VectorXd &pars ) {
@@ -475,7 +512,7 @@ Rcpp::List adaptiveMCMCR(
 //' @return Returns a symmetric matrix with the frequency of contact between each age group
 //'
 // [[Rcpp::export]]
-Eigen::MatrixXd contact_matrix(  
+Eigen::MatrixXd contact_matrix(
         Eigen::MatrixXi polymod_data,
         std::vector<size_t> demography,
         Rcpp::NumericVector age_group_limits = Rcpp::NumericVector::create(
@@ -484,16 +521,16 @@ Eigen::MatrixXd contact_matrix(
 
     if (polymod_data.cols() - 2 != age_group_limits.size() + 1)
         ::Rf_error("Number of age groups should be consistent for the polymod_data and the age_group_limits");
-    
+
     flu::data::age_data_t age_data;
     age_data.age_sizes = demography;
 
-    auto agl_v = std::vector<size_t>( 
+    auto agl_v = std::vector<size_t>(
                 age_group_limits.begin(), age_group_limits.end() );
     age_data.age_group_sizes = flu::data::group_age_data( demography, agl_v );
 
-    return flu::contacts::to_symmetric_matrix( 
-            flu::contacts::table_to_contacts(polymod_data, agl_v), 
+    return flu::contacts::to_symmetric_matrix(
+            flu::contacts::table_to_contacts(polymod_data, agl_v),
             age_data );
 }
 
@@ -501,10 +538,10 @@ size_t as_age_group_index( size_t age,
         Rcpp::NumericVector limits = Rcpp::NumericVector::create(
             1, 5, 15, 25, 45, 65 ) )
 {
-    std::deque<size_t> group_barriers = std::deque<size_t>( 
+    std::deque<size_t> group_barriers = std::deque<size_t>(
                 limits.begin(), limits.end() );
     size_t ag = 1;
-    while (group_barriers.size() != 0 
+    while (group_barriers.size() != 0
             && age >= group_barriers[0] )
     {
         ++ag;
@@ -564,9 +601,9 @@ Rcpp::CharacterVector age_group_levels(Rcpp::NumericVector limits = Rcpp::Numeri
 //' @seealso \code{\link{age_group_levels}} For the reverse of this function.
 //'
 // [[Rcpp::export]]
-Rcpp::IntegerVector age_group_limits(std::vector<std::string> levels) 
+Rcpp::IntegerVector age_group_limits(std::vector<std::string> levels)
 {
-    //Rcpp::IntegerVector age_group_limits(Rcpp::CharacterVector levels) 
+    //Rcpp::IntegerVector age_group_limits(Rcpp::CharacterVector levels)
     Rcpp::IntegerVector limits;
 
     // Regex support is broken in gcc 4.8, so we will scan by hand
@@ -600,7 +637,7 @@ Rcpp::IntegerVector age_group_limits(std::vector<std::string> levels)
 
 //' Age as age group
 //'
-//' @description Returns the age group a certain age belongs to given the upper age group limits 
+//' @description Returns the age group a certain age belongs to given the upper age group limits
 //'
 //' @param age The relevant age. This can be a vector.
 //' @param limits The upper limit to each age groups (not included) (1,5,15,25,45,65) corresponds to the following age groups: <1, 1-4, 5-14, 15-24, 25-44, 45-64 and >=65.
@@ -638,7 +675,7 @@ Rcpp::IntegerVector separate_into_age_groups( std::vector<size_t> age_sizes,
             1, 5, 15, 25, 45, 65 ) )
 {
     Rcpp::CharacterVector lvls = age_group_levels(limits);
-    auto agl_v = std::vector<size_t>( 
+    auto agl_v = std::vector<size_t>(
                 limits.begin(), limits.end() );
 
     auto v = flu::data::group_age_data( age_sizes, agl_v );
@@ -648,7 +685,7 @@ Rcpp::IntegerVector separate_into_age_groups( std::vector<size_t> age_sizes,
 }
 
 //' @title Stratify age groups into different risk groups
-//' 
+//'
 //' @description Stratifies the age groups and returns the population size of each age group and risk group.
 //'
 //' @param age_groups A vector containing the population size of each age group
@@ -657,7 +694,7 @@ Rcpp::IntegerVector separate_into_age_groups( std::vector<size_t> age_sizes,
 //' @return A vector with the population in the low risk groups, followed by the other risk groups. The length is equal to the number of age groups times the number of risk groups (including the low risk group).
 //'
 // [[Rcpp::export(name=".stratify_by_risk")]]
-Eigen::VectorXd stratify_by_risk( 
+Eigen::VectorXd stratify_by_risk(
         const Eigen::VectorXd &age_groups, const Eigen::VectorXd &risk_ratios, size_t no_risk_groups )
 {
     return flu::data::stratify_by_risk(age_groups, risk_ratios, no_risk_groups);
@@ -665,10 +702,10 @@ Eigen::VectorXd stratify_by_risk(
 
 //' @title Calculate R0 from transmission rate
 //'
-//' @description Uses the transmission rate (\eqn{\lambda}), contact matrix (\eqn{c}), population (\eqn{N}), and infectious period (\eqn{\gamma}) 
+//' @description Uses the transmission rate (\eqn{\lambda}), contact matrix (\eqn{c}), population (\eqn{N}), and infectious period (\eqn{\gamma})
 //' to calculate the R0 using the following equation.
 //' \deqn{\lambda max(EV(C)) \gamma}
-//' where \eqn{EV(C)} denotes the eigenvalues of the matrix \eqn{C} which is calculated from the contact matrix and the population 
+//' where \eqn{EV(C)} denotes the eigenvalues of the matrix \eqn{C} which is calculated from the contact matrix and the population
 //' (\eqn{C[i,j] = c[i,j] N[j]}).
 //'
 //' @param transmission_rate The transmission rate of the disease
@@ -695,12 +732,12 @@ double as_R0(double transmission_rate, Eigen::MatrixXd contact_matrix, Eigen::Ve
     return transmission_rate*evs*duration;
 }
 
-//' @title Calculate transmission rate from R0 
+//' @title Calculate transmission rate from R0
 //'
-//' @description Uses the R0 (\eqn{R0}), contact matrix (\eqn{c}), population (\eqn{N}), and infectious period (\eqn{\gamma}) 
+//' @description Uses the R0 (\eqn{R0}), contact matrix (\eqn{c}), population (\eqn{N}), and infectious period (\eqn{\gamma})
 //' to calculate the transmission rate using the following equation.
 //' \deqn{R0/(max(EV(C)) \gamma)}
-//' where \eqn{EV(C)} denotes the eigenvalues of the matrix \eqn{C} which is calculated from the contact matrix and the population 
+//' where \eqn{EV(C)} denotes the eigenvalues of the matrix \eqn{C} which is calculated from the contact matrix and the population
 //' (\eqn{C[i,j] = c[i,j] N[j]}).
 //'
 //' @param R0 The R0 of the disease
@@ -708,7 +745,7 @@ double as_R0(double transmission_rate, Eigen::MatrixXd contact_matrix, Eigen::Ve
 //' @param age_groups The population size of the different age groups
 //' @param duration Duration of the infectious period. Default value is 1.8 days
 //'
-//' @return Returns the transmission rate 
+//' @return Returns the transmission rate
 // [[Rcpp::export]]
 double as_transmission_rate(double R0, Eigen::MatrixXd contact_matrix, Eigen::VectorXd age_groups,
         double duration = 1.8) {
