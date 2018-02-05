@@ -6,7 +6,7 @@ inline long double safe_sum_log(long double a, long double b) {
   // The general algorithm
   //auto c = std::max(a, b);
   //return log(exp(a-c) + exp(b-c)) + c;
-  
+
   // Optimised
   if (a > b)
     return log(1 + exp(b-a)) + a;
@@ -14,14 +14,14 @@ inline long double safe_sum_log(long double a, long double b) {
     return log(exp(a-b) + 1) + b;
 }
 
-namespace flu 
+namespace flu
 {
     boost::posix_time::ptime getTimeFromWeekYear( int week, int year )
     {
         namespace bt = boost::posix_time;
         namespace bg = boost::gregorian;
         // Week 1 is the first week that ends in this year
-        auto firstThursday = bg::first_day_of_the_week_in_month( 
+        auto firstThursday = bg::first_day_of_the_week_in_month(
                 bg::Thursday, bg::Jan );
         auto dateThursday = firstThursday.get_date( year );
         auto current_time = bt::ptime(dateThursday) - bt::hours(24*3);
@@ -30,7 +30,7 @@ namespace flu
     }
 
     enum seir_type_t { S = 0, E1 = 1, E2 = 2, I1 = 3, I2 = 4, R = 5 };
-    const std::vector<seir_type_t> seir_types = 
+    const std::vector<seir_type_t> seir_types =
         { S, E1, E2, I1, I2, R };
 
     enum group_type_t { LOW = 0, HIGH = 1, PREG = 2,
@@ -38,15 +38,15 @@ namespace flu
     const std::vector<group_type_t> group_types = { LOW, HIGH, PREG,
         VACC_LOW, VACC_HIGH, VACC_PREG };
 
-    inline size_t ode_id( const size_t nag, const group_type_t gt, 
+    inline size_t ode_id( const size_t nag, const group_type_t gt,
             const seir_type_t st )
     {
         return gt*nag*seir_types.size()
         + st*nag;
     }
 
-    inline size_t ode_id( const size_t nag, const group_type_t gt, 
-            const seir_type_t st, 
+    inline size_t ode_id( const size_t nag, const group_type_t gt,
+            const seir_type_t st,
             const size_t i )
     {
         return gt*nag*seir_types.size()
@@ -62,7 +62,7 @@ namespace flu
             double a1, double a2, double g1, double g2 )
     {
         const size_t nag = transmission_regular.cols();
-        
+
         for(size_t i=0;i<nag;i++)
         {
             /*rate of depletion of susceptible*/
@@ -157,10 +157,10 @@ namespace flu
         return deltas;
     }
 
-    inline Eigen::VectorXd new_cases( 
+    inline Eigen::VectorXd new_cases(
             Eigen::VectorXd &densities,
             const boost::posix_time::ptime &start_time,
-            const boost::posix_time::ptime &end_time, 
+            const boost::posix_time::ptime &end_time,
             boost::posix_time::time_duration &dt,
             const Eigen::VectorXd &Npop,
             const Eigen::MatrixXd &vaccine_rates, // If empty, rate of zero is assumed
@@ -184,7 +184,7 @@ namespace flu
 
         auto ode_func = [&]( const Eigen::VectorXd &y, const double dummy )
         {
-            return flu_ode( deltas, y, 
+            return flu_ode( deltas, y,
                     Npop, vaccine_rates, vaccine_efficacy,
                     transmission_regular, a1, a2, g1, g2 );
         };
@@ -206,57 +206,60 @@ namespace flu
     }
 
     cases_t one_year_SEIR_with_vaccination(
-            const Eigen::VectorXd &Npop,  
-            const Eigen::VectorXd &seeding_infectious, 
-            const double tlatent, const double tinfectious, 
-            const Eigen::VectorXd &s_profile, 
+            const Eigen::VectorXd &Npop,
+            const Eigen::VectorXd &seeding_infectious,
+            const double tlatent, const double tinfectious,
+            const Eigen::VectorXd &s_profile,
             const Eigen::MatrixXd &contact_regular, double transmissibility,
             const vaccine::vaccine_t &vaccine_programme,
-            size_t minimal_resolution, 
+            size_t minimal_resolution,
             const boost::posix_time::ptime &starting_time )
     {
         // This splits seeding_infectious into a risk groups
         // and then calls to the more general infectionODE function
-        Eigen::MatrixXd risk_proportions = Eigen::MatrixXd( 
+        Eigen::MatrixXd risk_proportions = Eigen::MatrixXd(
                 2, seeding_infectious.size() );
-        risk_proportions << 
-            0.021, 0.055, 0.098, 0.087, 0.092, 0.183, 0.45, 
+        risk_proportions <<
+            0.021, 0.055, 0.098, 0.087, 0.092, 0.183, 0.45,
             0, 0, 0, 0, 0, 0, 0;
 
-        auto seed_vec = flu::data::separate_into_risk_groups( 
+        auto seed_vec = flu::data::separate_into_risk_groups(
                 seeding_infectious, risk_proportions  );
-        Eigen::VectorXd initial_resistant_vec = Eigen::VectorXd::Zero(seed_vec.cols());
+        Eigen::VectorXd initial_resistant_vec = Eigen::VectorXd::Zero(seed_vec.size());
+        Eigen::VectorXd initial_resistant_vac_vec = Eigen::VectorXd::Zero(seed_vec.size());
 
         return infectionODE(
-            Npop,  
-            seed_vec, 
+            Npop,
+            seed_vec,
             initial_resistant_vec,
-            tlatent, tinfectious, 
-            s_profile, 
+            initial_resistant_vac_vec,
+            tlatent, tinfectious,
+            s_profile,
             contact_regular, transmissibility,
             vaccine_programme,
-            minimal_resolution, 
+            minimal_resolution,
             starting_time );
     }
 
     cases_t infectionODE(
-            const Eigen::VectorXd &Npop,  
-            const Eigen::VectorXd &seed_vec, 
-            const Eigen::VectorXd &initial_resistant_vec, 
-            const double tlatent, const double tinfectious, 
-            const Eigen::VectorXd &s_profile, 
-            const Eigen::MatrixXd &contact_regular, 
+            const Eigen::VectorXd &Npop,
+            const Eigen::VectorXd &seed_vec,
+            const Eigen::VectorXd &initial_resistant_vec,
+            const Eigen::VectorXd &initial_resistant_vac_vec,
+            const double tlatent, const double tinfectious,
+            const Eigen::VectorXd &s_profile,
+            const Eigen::MatrixXd &contact_regular,
             double transmissibility,
             const vaccine::vaccine_t &vaccine_programme,
             const std::vector<boost::posix_time::ptime> &times )
     {
         namespace bt = boost::posix_time;
- 
+
         assert( s_profile.size() == contact_regular.rows() );
 
         const size_t nag = contact_regular.rows(); // No. of age groups
 
-        Eigen::VectorXd densities = Eigen::VectorXd::Zero( 
+        Eigen::VectorXd densities = Eigen::VectorXd::Zero(
                 nag*group_types.size()*
                 seir_types.size() );
 
@@ -284,20 +287,24 @@ namespace flu
             densities[ode_id(nag,LOW,E1,i)]=seed_vec[i];
             densities[ode_id(nag,HIGH,E1,i)]=seed_vec[i+nag];
             densities[ode_id(nag,PREG,E1,i)]=seed_vec[i+2*nag];
-          
+
             densities[ode_id(nag,LOW,R,i)]=initial_resistant_vec[i];
             densities[ode_id(nag,HIGH,R,i)]=initial_resistant_vec[i+nag];
             densities[ode_id(nag,PREG,R,i)]=initial_resistant_vec[i+2*nag];
 
-            densities[ode_id(nag,LOW,S,i)]=Npop[i]-densities[ode_id(nag,LOW,E1,i)]-densities[ode_id(nag,LOW,R,i)];
-            densities[ode_id(nag,HIGH,S,i)]=Npop[i+nag]-densities[ode_id(nag,HIGH,E1,i)]-densities[ode_id(nag,HIGH,R,i)];
-            densities[ode_id(nag,PREG,S,i)]=Npop[i+2*nag]-densities[ode_id(nag,PREG,E1,i)]-densities[ode_id(nag,PREG,R,i)];
+            densities[ode_id(nag,VACC_LOW,R,i)]=initial_resistant_vac_vec[i];
+            densities[ode_id(nag,VACC_HIGH,R,i)]=initial_resistant_vac_vec[i+nag];
+            densities[ode_id(nag,VACC_PREG,R,i)]=initial_resistant_vac_vec[i+2*nag];
+
+            densities[ode_id(nag,LOW,S,i)]=Npop[i]-densities[ode_id(nag,LOW,E1,i)]-densities[ode_id(nag,LOW,R,i)]-densities[ode_id(nag,VACC_LOW,R,i)];
+            densities[ode_id(nag,HIGH,S,i)]=Npop[i+nag]-densities[ode_id(nag,HIGH,E1,i)]-densities[ode_id(nag,HIGH,R,i)]-densities[ode_id(nag,VACC_HIGH,R,i)];
+            densities[ode_id(nag,PREG,S,i)]=Npop[i+2*nag]-densities[ode_id(nag,PREG,E1,i)]-densities[ode_id(nag,PREG,R,i)]-densities[ode_id(nag,VACC_PREG,R,i)];
         }
 
         auto current_time = times[0];
 
         cases_t cases;
-        cases.cases = Eigen::MatrixXd::Zero( times.size()-1, 
+        cases.cases = Eigen::MatrixXd::Zero( times.size()-1,
                 contact_regular.cols()*group_types.size()/2);
         cases.times = times;
         cases.times.erase( cases.times.begin() );
@@ -310,21 +317,21 @@ namespace flu
         while (step_count<cases.times.size())
         {
             next_time = cases.times[step_count];
-            if (time_changed_for_vacc) 
+            if (time_changed_for_vacc)
             {
                 // Previous iteration time was changed, now need to
                 // go back to old situation
                 time_changed_for_vacc = false;
             }
 
-            
+
             //Rcpp::Rcout << "cTime: " << current_time << std::endl;
             //Rcpp::Rcout << "Time: " << next_time << std::endl;
 
             Eigen::VectorXd vacc_rates;
             if (vaccine_programme.dates.size() > 0)
             {
-                while (date_id < ((int)vaccine_programme.dates.size())-1 && 
+                while (date_id < ((int)vaccine_programme.dates.size())-1 &&
                         current_time == vaccine_programme.dates[date_id+1] )
                 {
                     ++date_id;
@@ -334,18 +341,18 @@ namespace flu
                 date_id=floor((current_time-start_time).hours()/24.0-44);
             }
 
-            if (date_id < ((int)vaccine_programme.dates.size())-1 && 
-                        date_id >= -1 && 
+            if (date_id < ((int)vaccine_programme.dates.size())-1 &&
+                        date_id >= -1 &&
                     next_time > vaccine_programme.dates[date_id+1] )
             {
-                next_time = 
+                next_time =
                     vaccine_programme.dates[date_id+1];
                 time_changed_for_vacc = true;
             }
 
             if (date_id >= 0 &&
                     date_id < vaccine_programme.calendar.rows() )
-                vacc_rates = vaccine_programme.calendar.row(date_id); 
+                vacc_rates = vaccine_programme.calendar.row(date_id);
             //Rcpp::Rcout << "Densities " << densities << std::endl;
             auto n_cases = new_cases( densities, current_time,
                     next_time, dt,
@@ -369,32 +376,33 @@ namespace flu
             assert(step_count < cases.cases.rows());
 
             cases.cases.row(step_count) += n_cases;
-            if (!time_changed_for_vacc) 
+            if (!time_changed_for_vacc)
             {
                 ++step_count;
             }
         }
         return cases;
-    } 
+    }
 
     cases_t infectionODE(
-            const Eigen::VectorXd &Npop,  
+            const Eigen::VectorXd &Npop,
             const Eigen::VectorXd &seed_vec,
             const Eigen::VectorXd &resistant_vec,
-            const double tlatent, const double tinfectious, 
-            const Eigen::VectorXd &s_profile, 
+            const Eigen::VectorXd &resistant_vac_vec,
+            const double tlatent, const double tinfectious,
+            const Eigen::VectorXd &s_profile,
             const Eigen::MatrixXd &contact_regular, double transmissibility,
             const vaccine::vaccine_t &vaccine_programme,
-            size_t minimal_resolution, 
+            size_t minimal_resolution,
             const boost::posix_time::ptime &starting_time )
     {
- 
+
         namespace bt = boost::posix_time;
         auto current_time = starting_time;
-        if (to_tm(current_time).tm_year==70 && 
+        if (to_tm(current_time).tm_year==70 &&
                 vaccine_programme.dates.size()!=0)
         {
-            current_time = getTimeFromWeekYear( 35, 
+            current_time = getTimeFromWeekYear( 35,
                 vaccine_programme.dates[0].date().year() );
         }
 
@@ -410,7 +418,7 @@ namespace flu
             next_time += bt::hours(minimal_resolution);
             times.push_back( next_time );
         }
-        return infectionODE( Npop, seed_vec, resistant_vec, tlatent, tinfectious,
+        return infectionODE( Npop, seed_vec, resistant_vec, resistant_vac_vec, tlatent, tinfectious,
                 s_profile, contact_regular,
                 transmissibility, vaccine_programme,
                 times );
@@ -423,7 +431,7 @@ namespace flu
             .hours()/(24*7) + 1;
         auto result_days = simulation.cases;
         /*initialisation*/
-        Eigen::MatrixXd result_weeks = 
+        Eigen::MatrixXd result_weeks =
             Eigen::MatrixXd::Zero( weeks, 5 );
 
         size_t j = 0;
@@ -453,7 +461,7 @@ namespace flu
             .hours()/(24*7) + 1;
         auto result_days = simulation.cases;
         /*initialisation*/
-        Eigen::MatrixXd result_weeks = 
+        Eigen::MatrixXd result_weeks =
             Eigen::MatrixXd::Zero(weeks, no_data);
 
         size_t j = 0;
@@ -472,8 +480,8 @@ namespace flu
         return result_weeks;
     }
 
-    long double binomial_log_likelihood( double epsilon, 
-            size_t predicted, double population_size, 
+    long double binomial_log_likelihood( double epsilon,
+            size_t predicted, double population_size,
             int ili_cases, int ili_monitored,
             int confirmed_positive, int confirmed_samples
              )
@@ -490,7 +498,7 @@ namespace flu
         if (prob == 0 || !std::isfinite(prob))
         {
             /*Rcpp::cout << epsilon << ", " << predicted << ", " <<
-                population_size << ", " << ili_cases << ", " << 
+                population_size << ", " << ili_cases << ", " <<
                 confirmed_positive << ", " confirmed_samples <<
                 std::endl;*/
 
@@ -499,10 +507,10 @@ namespace flu
         return log(prob);
     }
 
-    double binomial_log_likelihood_year(const std::vector<double> &eps, 
+    double binomial_log_likelihood_year(const std::vector<double> &eps,
             const Eigen::MatrixXd &result_by_week,
-            const Eigen::MatrixXi &ili, const Eigen::MatrixXi &mon_pop, 
-            const Eigen::MatrixXi &n_pos, const Eigen::MatrixXi &n_samples, 
+            const Eigen::MatrixXi &ili, const Eigen::MatrixXi &mon_pop,
+            const Eigen::MatrixXi &n_pos, const Eigen::MatrixXi &n_samples,
             double * pop_5AG_RCGP)
     {
         long double result=0.0;
@@ -511,21 +519,21 @@ namespace flu
             auto epsilon=eps[i];
             for(int week=0;week<result_by_week.rows();week++)
             {
-                result += binomial_log_likelihood( epsilon, 
+                result += binomial_log_likelihood( epsilon,
                         result_by_week(week,i), pop_5AG_RCGP[i],
                         ili(week,i), mon_pop(week,i),
                         n_pos(week,i), n_samples(week,i) );
             }
-            
+
         }
         return result;
     }
 
 
-    long double log_likelihood( double epsilon, double psi, 
-            size_t predicted, double population_size, 
+    long double log_likelihood( double epsilon, double psi,
+            size_t predicted, double population_size,
             int ili_cases, int ili_monitored,
-            int confirmed_positive, int confirmed_samples, 
+            int confirmed_positive, int confirmed_samples,
             int depth )
     {
         int Z_in_mon=(int)round(predicted*ili_monitored/population_size);
@@ -591,7 +599,7 @@ namespace flu
         if(max_m_plus>confirmed_positive)
             for(int k=confirmed_positive+1;k<=max_m_plus;k++)
             {
-                laij+=log(k) + log(epsilon) + log(m-k-n+confirmed_positive+1)+log(Z_in_mon-k+h_init+1)-log(m-k+1)- 
+                laij+=log(k) + log(epsilon) + log(m-k-n+confirmed_positive+1)+log(Z_in_mon-k+h_init+1)-log(m-k+1)-
                   log(k-confirmed_positive) - log(k-h_init) - log(1-epsilon);
                 llikelihood_AG_week = safe_sum_log(laij, llikelihood_AG_week);
             }
@@ -610,7 +618,7 @@ namespace flu
                 {
                     k_seed++;
                     laij_seed+=log(k_seed)+log(m-k_seed-n+confirmed_positive+1) + log(psi) +
-                      log(epsilon) + log(ili_monitored)- log(m-k_seed+1) - 
+                      log(epsilon) + log(ili_monitored)- log(m-k_seed+1) -
                       log(k_seed-confirmed_positive) - log(h);
                 }
 
@@ -642,7 +650,7 @@ namespace flu
         auto ll = llikelihood_AG_week;
         if (!std::isfinite(ll))
         {
-            /*Rcpp::Rcerr << "Numerical error detected for week " 
+            /*Rcpp::Rcerr << "Numerical error detected for week "
               << week << " and age group " << i << std::endl;
               Rcpp::Rcerr << "Predicted number of cases is: "
               << result_by_week(week,i) << std::endl;*/
@@ -651,11 +659,11 @@ namespace flu
         return ll;
     }
 
-    double log_likelihood_hyper_poisson(const Eigen::VectorXd &eps, 
+    double log_likelihood_hyper_poisson(const Eigen::VectorXd &eps,
             double psi, const Eigen::MatrixXd &result_by_week,
-            const Eigen::MatrixXi &ili, const Eigen::MatrixXi &mon_pop, 
-            const Eigen::MatrixXi &n_pos, const Eigen::MatrixXi &n_samples, 
-            //int * n_ILI, int * mon_popu, int * n_posi, int * n_sampled, 
+            const Eigen::MatrixXi &ili, const Eigen::MatrixXi &mon_pop,
+            const Eigen::MatrixXi &n_pos, const Eigen::MatrixXi &n_samples,
+            //int * n_ILI, int * mon_popu, int * n_posi, int * n_sampled,
             const Eigen::VectorXd &pop_5AG_RCGP, int depth)
     {
         long double result=0.0;
@@ -664,12 +672,12 @@ namespace flu
             auto epsilon=eps(i);
             for(int week=0;week<result_by_week.rows();week++)
             {
-                result += log_likelihood( epsilon, psi, 
+                result += log_likelihood( epsilon, psi,
                         result_by_week(week,i), pop_5AG_RCGP(i),
                         ili(week,i), mon_pop(week,i),
                         n_pos(week,i), n_samples(week,i), depth );
             }
-            
+
         }
         return(result);
     }
@@ -682,7 +690,7 @@ namespace flu
             bool susceptibility ) {
 
         // Parameters should be valid
-        if( 
+        if(
                 proposed.epsilon[0] <= 0 || proposed.epsilon[0] >= 1 ||
                 proposed.epsilon[2] <= 0 || proposed.epsilon[2] >= 1 ||
                 proposed.epsilon[4] <= 0 || proposed.epsilon[4] >= 1 ||
@@ -732,7 +740,7 @@ namespace flu
             bool susceptibility ) {
 
         // Parameters should be valid
-        if( 
+        if(
                 proposed[0] <= 0 || proposed[0] >= 1 ||
                 proposed[1] <= 0 || proposed[1] >= 1 ||
                 proposed[2] <= 0 || proposed[2] >= 1 ||
