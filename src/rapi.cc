@@ -320,7 +320,7 @@ Rcpp::DataFrame infectionODEss(
     Eigen::VectorXd initial_vac_resistant = Eigen::VectorXd::Zero(initial_infected.size());
     return infectionODEs(population, initial_infected, initial_resistant, initial_vac_resistant,
                          vaccine_calendar, contact_matrix, susceptibility, transmissibility, infection_delays,
-                         dates )
+                         dates );
 }
 
 //' Returns log likelihood of the predicted number of cases given the data for that week
