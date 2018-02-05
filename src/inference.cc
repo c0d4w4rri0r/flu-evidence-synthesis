@@ -146,10 +146,12 @@ mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
     auto time_infectious = 1.8;
 
     Eigen::VectorXd curr_init_resist = Eigen::VectorXd::Zero(curr_init_inf.size());
+    Eigen::VectorXd curr_vac_init_resist = Eigen::VectorXd::Zero(curr_init_inf.size());
 
     auto result = infectionODE(pop_vec,
             curr_init_inf,
             curr_init_resist,
+            curr_vac_init_resist,
             time_latent, time_infectious,
             pars_to_susceptibility(curr_parameters),
             current_contact_regular, curr_parameters[transmissibility_index],
@@ -278,10 +280,12 @@ mcmc_result_inference_t inference_cpp( std::vector<size_t> demography,
                 contacts::to_symmetric_matrix( prop_c, age_data );
 
             Eigen::VectorXd prop_init_resist = Eigen::VectorXd::Zero(prop_init_inf.size());
+            Eigen::VectorXd prop_vac_init_resist = Eigen::VectorXd::Zero(prop_init_inf.size());
 
             result = infectionODE(pop_vec,
                     prop_init_inf,
                     prop_init_resist,
+                    prop_vac_init_resist,
                     time_latent, time_infectious,
                     pars_to_susceptibility(prop_parameters),
                     prop_contact_regular, prop_parameters[transmissibility_index],
@@ -528,10 +532,12 @@ mcmc_result_inference_t inference_multistrains(
                     init_inf, risk_proportions  );
 
             Eigen::VectorXd resist_vec = Eigen::VectorXd::Zero(seed_vec.size());
+            Eigen::VectorXd resist_vac_vec = Eigen::VectorXd::Zero(seed_vec.size());
 
             auto result = infectionODE(pop_vec,
                     seed_vec,
                     resist_vec,
+                    resist_vac_vec,
                     time_latent, time_infectious,
                     susc,
                     contact_regular, sub_pars[3],
