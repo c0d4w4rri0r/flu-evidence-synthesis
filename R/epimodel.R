@@ -14,7 +14,7 @@
 #' @seealso \code{\link{infectionODEs.cpp}} Used internally by this function.
 infectionODEs <- function(population, initial_infected, vaccine_calendar, contact_matrix,
                           susceptibility, transmissibility, infection_delays, interval = 7,
-                          dates = NULL )
+                          dates = NULL , initial_resistant = NULL, initial_vac_resistant = NULL)
 {
   if (is.null(dates))
   {
@@ -32,11 +32,19 @@ infectionODEs <- function(population, initial_infected, vaccine_calendar, contac
       latest.date <- latest.date + interval
     }
   }
+  if (is.null(initial_resistant))
+  {
+    initial_resistant<-rep(0,length(initial_infected))
+  }
+  if (is.null(initial_vac_resistant))
+  {
+    initial_vac_resistant<-rep(0,length(initial_vac_resistant))
+  }
   #print(dates)
   #if (class(dates[1]!=Date))
   #  stop( "Dates must be of class Date" );
   
-  infectionODEs.cpp(population, initial_infected, vaccine_calendar, contact_matrix,
+  infectionODEsDHSC.cpp(population, initial_infected, initial_infected, initial_vac_resistant, vaccine_calendar, contact_matrix,
                     susceptibility, transmissibility, infection_delays, dates )
 }
 
