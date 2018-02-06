@@ -38,7 +38,7 @@ infectionODEs <- function(population, initial_infected, vaccine_calendar, contac
   }
   if (is.null(initial_vac_resistant))
   {
-    initial_vac_resistant<-rep(0,length(initial_vac_resistant))
+    initial_vac_resistant<-rep(0,length(initial_infected))
   }
   #print(dates)
   #if (class(dates[1]!=Date))
