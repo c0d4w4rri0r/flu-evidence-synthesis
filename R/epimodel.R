@@ -44,7 +44,7 @@ infectionODEs <- function(population, initial_infected, vaccine_calendar, contac
   #if (class(dates[1]!=Date))
   #  stop( "Dates must be of class Date" );
   
-  infectionODEsDHSC.cpp(population, initial_infected, initial_infected, initial_vac_resistant, vaccine_calendar, contact_matrix,
+  infectionODEsDHSC.cpp(population, initial_infected, initial_resistant, initial_vac_resistant, vaccine_calendar, contact_matrix,
                     susceptibility, transmissibility, infection_delays, dates )
 }
 
